@@ -32,7 +32,7 @@ The API URL is chosen in [`src/contexts/AxiosWithAuth.jsx`](src/contexts/AxiosWi
 | Mode | API |
 | --- | --- |
 | `npm run dev` | `http://<current hostname>:5000` (your local server) |
-| `npm run build` | `https://investment-backend-kfv5.onrender.com` |
+| `npm run build` | `https://investment-backend-p8j8.onrender.com` |
 
 The same module also:
 

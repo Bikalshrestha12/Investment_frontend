@@ -52,7 +52,7 @@ export const API_BASE_URL =
     (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '') ||
     (import.meta.env.MODE === "development"
         ? `http://${window.location.hostname}:5000`
-        : "https://investment-backend-kfv5.onrender.com");
+        : "https://investment-backend-p8j8.onrender.com");
 
 export const imageUpload = API_BASE_URL;
 
