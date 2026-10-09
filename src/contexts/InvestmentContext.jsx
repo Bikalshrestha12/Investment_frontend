@@ -1,9 +1,9 @@
 import React, { createContext, useEffect, useState } from 'react'
 import { toast, ToastContainer } from 'react-toastify';
-import { useNavigate } from 'react-router-dom';
 // import { servicesitems } from '../pages/Service';
-import axios from 'axios';
 import AxiosWithAuth from './AxiosWithAuth';
+import { useSession } from '../auth/SessionProvider';
+import { getToken } from '../auth/session';
 // import { projectData } from '../pages/Project';
 
 
@@ -18,7 +18,9 @@ const InvestmentContextProvider = (props) => {
 
   // console.log(projectData);
 
-  const token = localStorage.getItem("token");
+  // Re-renders on login/logout in any tab, so the cart follows the session.
+  const { isAuthenticated } = useSession();
+  const token = isAuthenticated ? getToken() : null;
   // console.log("Login token :", token)
   useEffect(() => {
     const fetchProjectData = async () => {
@@ -154,7 +156,11 @@ const InvestmentContextProvider = (props) => {
 
 
   useEffect(() => {
-    if (projectData.length > 0 && token) {
+    if (!token) {
+      setCartItems([]);
+      return;
+    }
+    if (projectData.length > 0) {
       fetchCart();
     }
   }, [projectData, token]);

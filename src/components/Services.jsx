@@ -7,6 +7,7 @@ import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
 import AxiosWithAuth, { imageUpload } from '../contexts/AxiosWithAuth';
 import Loading from './Loading';
+import { htmlToText } from './common/RichText';
 
 
 
@@ -58,10 +59,10 @@ const Services = () => {
     }, [serviceData]);
 
 
+    if (loading) return <div className="text-center py-20 text-xl text-gray-500"> <Loading /></div>;
     if (!service.length) {
         return <div className="text-center py-8">No Services available</div>;
     }
-    if (loading) return <div className="text-center py-20 text-xl text-gray-500"> <Loading /></div>;
 
     return (
         <div className="py-12">
@@ -104,10 +105,10 @@ const Services = () => {
                             {/* Card Content */}
                             <div className="p-4 text-center">
                                 <h5 className="flex items-center justify-center text-dark hover:text-gray-600 transition-colors mb-2">
-                                    <img src={service.icon} alt="icon" width={24} height={24} className="mr-2" />
+                                    <img src={service.icon} onError={(e) => { e.currentTarget.style.display = 'none'; }} alt="icon" width={24} height={24} className="mr-2" />
                                     <span className="text-xl font-semibold">{service.title}</span>
                                 </h5>
-                                <p className="text-sm text-gray-700 mb-4">{service.description}</p>
+                                <p className="text-sm text-gray-700 mb-4">{htmlToText(service.description)}</p>
 
                                 {/* Read More Button  */}
                                 {/* <Link
@@ -121,7 +122,7 @@ const Services = () => {
                     ))}
                 </div>
                 <MotionLink
-                    to="/services"
+                    to="/aboutas"
                     initial={{ opacity: 0, y: 50 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.1 }}

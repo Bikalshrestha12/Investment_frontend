@@ -1,10 +1,15 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense, lazy } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useFormik } from "formik";
 import * as Yup from "yup";
-import axios from "axios";
-import Sidbar from "../Sidbar";
 import AxiosWithAuth from "../../contexts/AxiosWithAuth";
+import { Skeleton } from '../../components/common/Skeleton';
+import { Field } from '../content/shared';
+import { FormPage } from '../ui';
+
+// Created once, outside the component: a lazy component made during render is a new
+// component on every render, which remounts the editor and throws away what was typed.
+const RichTextEditor = lazy(() => import('../content/RichTextEditor'));
 
 const TeamForm = () => {
     const navigate = useNavigate();
@@ -29,7 +34,6 @@ const TeamForm = () => {
             name: "",
             role: "",
             description: "",
-            date: new Date().toISOString().split("T")[0],
             facebook: "",
             twitter: "",
             instagram: "",
@@ -41,7 +45,6 @@ const TeamForm = () => {
             name: Yup.string().required("Full name is required"),
             role: Yup.string().required("Role is required"),
             description: Yup.string().required("Description is required"),
-            date: Yup.date().required("Date is required"),
             facebook: Yup.string().url("Enter a valid URL"),
             twitter: Yup.string().url("Enter a valid URL"),
             instagram: Yup.string().url("Enter a valid URL"),
@@ -88,7 +91,8 @@ const TeamForm = () => {
                 navigate("/dashboard/teams");
             } catch (err) {
                 console.error(err);
-                alert("Error saving team member. Try again.");
+                const data = err.response?.data;
+                alert(data?.error || data?.message || "Error saving team member. Try again.");
             } finally {
                 setLoading(false);
             }
@@ -110,7 +114,6 @@ const TeamForm = () => {
                         description: data.description || "",
                         image: data.image || "",
                         // icon: data.icon || "",
-                        date: data.date ? new Date(data.date).toISOString().split("T")[0] : "",
                         facebook: data.facebook || "",
                         twitter: data.twitter || "",
                         instagram: data.instagram || "",
@@ -130,47 +133,45 @@ const TeamForm = () => {
     const socialFields = ["facebook", "twitter", "instagram", "linkedin"];
 
     return (
-        <div>
-            <Sidbar />
-            <div className="flex-1 max-w-6xl mx-auto p-6">
-                <div className="bg-white shadow rounded-lg p-8">
-                    <h2 className="text-3xl font-bold text-center text-blue-900 mb-6">
-                        {isEdit ? "Edit Team Member" : "Add New Team Member"}
-                    </h2>
+        <FormPage
+            title={isEdit ? "Edit Team Member" : "Add Team Member"}
+            backTo="/dashboard/teams"
+            backLabel="team"
+        >
 
-                    <form onSubmit={formik.handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Name */}
-                        <div>
-                            <label className="block text-gray-700 mb-1">Full Name</label>
-                            <input
-                                type="text"
-                                name="name"
-                                value={formik.values.name}
-                                onChange={formik.handleChange}
-                                className={`w-full p-3 border rounded ${formik.errors.name && formik.touched.name ? "border-red-500" : "border-gray-300"}`}
-                            />
-                            {formik.errors.name && formik.touched.name && (
-                                <p className="text-red-500 text-sm">{formik.errors.name}</p>
-                            )}
-                        </div>
+            <form onSubmit={formik.handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Name */}
+                <div>
+                    <label className="block text-gray-700 mb-1">Full Name</label>
+                    <input
+                        type="text"
+                        name="name"
+                        value={formik.values.name}
+                        onChange={formik.handleChange}
+                        className={`w-full p-3 border rounded ${formik.errors.name && formik.touched.name ? "border-red-500" : "border-gray-300"}`}
+                    />
+                    {formik.errors.name && formik.touched.name && (
+                        <p className="text-red-500 text-sm">{formik.errors.name}</p>
+                    )}
+                </div>
 
-                        {/* Role */}
-                        <div>
-                            <label className="block text-gray-700 mb-1">Role</label>
-                            <input
-                                type="text"
-                                name="role"
-                                value={formik.values.role}
-                                onChange={formik.handleChange}
-                                className={`w-full p-3 border rounded ${formik.errors.role && formik.touched.role ? "border-red-500" : "border-gray-300"}`}
-                            />
-                            {formik.errors.role && formik.touched.role && (
-                                <p className="text-red-500 text-sm">{formik.errors.role}</p>
-                            )}
-                        </div>
+                {/* Role */}
+                <div>
+                    <label className="block text-gray-700 mb-1">Role</label>
+                    <input
+                        type="text"
+                        name="role"
+                        value={formik.values.role}
+                        onChange={formik.handleChange}
+                        className={`w-full p-3 border rounded ${formik.errors.role && formik.touched.role ? "border-red-500" : "border-gray-300"}`}
+                    />
+                    {formik.errors.role && formik.touched.role && (
+                        <p className="text-red-500 text-sm">{formik.errors.role}</p>
+                    )}
+                </div>
 
-                        {/* Description */}
-                        <div className="md:col-span-2">
+                {/* Description */}
+                {/* <div className="md:col-span-2">
                             <label className="block text-gray-700 mb-1">Description</label>
                             <textarea
                                 name="description"
@@ -182,28 +183,44 @@ const TeamForm = () => {
                             {formik.errors.description && formik.touched.description && (
                                 <p className="text-red-500 text-sm">{formik.errors.description}</p>
                             )}
-                        </div>
+                        </div> */}
+                <Field
+                    label="Description"
+                    required
+                    className="md:col-span-2"
+                    error={formik.touched.description && formik.errors.description}
+                >
+                    <Suspense fallback={<Skeleton className="h-72 w-full rounded-lg" />}>
+                        <RichTextEditor
+                            value={formik.values.description}
+                            onChange={(html) => formik.setFieldValue('description', html)}
+                            onBlur={() => formik.setFieldTouched('description', true)}
+                            invalid={!!(formik.touched.description && formik.errors.description)}
+                            placeholder="Write about this team member..."
+                        />
+                    </Suspense>
+                </Field>
 
-                        {/* Image Upload */}
-                        <div>
-                            <label className="block text-gray-700 mb-1">Image</label>
-                            <input
-                                type="file"
-                                accept="image/*"
-                                onChange={(e) => {
-                                    const file = e.target.files[0];
-                                    if (file) {
-                                        setImageFile(file);
-                                        setImagePreview(URL.createObjectURL(file));
-                                    }
-                                }}
-                                className="w-full"
-                            />
-                            {imagePreview && <img src={imagePreview} alt="Image" className="mt-2 w-24 h-24 object-cover rounded shadow" />}
-                        </div>
+                {/* Image Upload */}
+                <div>
+                    <label className="block text-gray-700 mb-1">Image</label>
+                    <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                            const file = e.target.files[0];
+                            if (file) {
+                                setImageFile(file);
+                                setImagePreview(URL.createObjectURL(file));
+                            }
+                        }}
+                        className="w-full"
+                    />
+                    {imagePreview && <img src={imagePreview} alt="Image" className="mt-2 w-24 h-24 object-cover rounded shadow" />}
+                </div>
 
-                        {/* Icon Upload */}
-                        {/* <div>
+                {/* Icon Upload */}
+                {/* <div>
                             <label className="block text-gray-700 mb-1">Icon</label>
                             <input
                                 type="file"
@@ -220,52 +237,35 @@ const TeamForm = () => {
                             {iconPreview && <img src={iconPreview} alt="Icon" className="mt-2 w-20 h-20 object-cover rounded shadow" />}
                         </div> */}
 
-                        {/* Date */}
-                        <div>
-                            <label className="block text-gray-700 mb-1">Date</label>
-                            <input
-                                type="date"
-                                name="date"
-                                value={formik.values.date}
-                                onChange={formik.handleChange}
-                                className={`w-full p-3 border rounded ${formik.errors.date && formik.touched.date ? "border-red-500" : "border-gray-300"}`}
-                            />
-                            {formik.errors.date && formik.touched.date && (
-                                <p className="text-red-500 text-sm">{formik.errors.date}</p>
-                            )}
-                        </div>
+                {/* Social Links */}
+                {socialFields.map((field) => (
+                    <div key={field}>
+                        <label className="block text-gray-700 mb-1 capitalize">{field} URL</label>
+                        <input
+                            type="text"
+                            name={field}
+                            value={formik.values[field]}
+                            onChange={formik.handleChange}
+                            className={`w-full p-3 border rounded ${formik.errors[field] && formik.touched[field] ? "border-red-500" : "border-gray-300"}`}
+                        />
+                        {formik.errors[field] && formik.touched[field] && (
+                            <p className="text-red-500 text-sm">{formik.errors[field]}</p>
+                        )}
+                    </div>
+                ))}
 
-                        {/* Social Links */}
-                        {socialFields.map((field) => (
-                            <div key={field}>
-                                <label className="block text-gray-700 mb-1 capitalize">{field} URL</label>
-                                <input
-                                    type="text"
-                                    name={field}
-                                    value={formik.values[field]}
-                                    onChange={formik.handleChange}
-                                    className={`w-full p-3 border rounded ${formik.errors[field] && formik.touched[field] ? "border-red-500" : "border-gray-300"}`}
-                                />
-                                {formik.errors[field] && formik.touched[field] && (
-                                    <p className="text-red-500 text-sm">{formik.errors[field]}</p>
-                                )}
-                            </div>
-                        ))}
-
-                        {/* Submit Button */}
-                        <div className="md:col-span-2 mt-4">
-                            <button
-                                type="submit"
-                                disabled={loading}
-                                className="w-full py-3 bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
-                            >
-                                {loading ? "Saving..." : isEdit ? "Update Team Member" : "Add Team Member"}
-                            </button>
-                        </div>
-                    </form>
+                {/* Submit Button */}
+                <div className="md:col-span-2 mt-4">
+                    <button
+                        type="submit"
+                        disabled={loading}
+                        className="w-full py-3 bg-blue-600 text-white font-semibold rounded hover:bg-blue-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    >
+                        {loading ? "Saving..." : isEdit ? "Update Team Member" : "Add Team Member"}
+                    </button>
                 </div>
-            </div>
-        </div>
+            </form>
+        </FormPage>
     );
 };
 

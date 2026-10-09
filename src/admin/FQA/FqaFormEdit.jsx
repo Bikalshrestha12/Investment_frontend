@@ -4,8 +4,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import axios from "axios";
-import Sidbar from '../Sidbar';
 import AxiosWithAuth from '../../contexts/AxiosWithAuth';
+import { FormPage } from '../ui';
 
 const FqaFormEdit = () => {
     const navigate = useNavigate();
@@ -108,14 +108,11 @@ const FqaFormEdit = () => {
     }, [id]);
 
     return (
-        <div>
-            <div>
-                <Sidbar />
-                <div className="max-w-4xl mx-auto">
-                    <div className="mt-6 p-6 bg-white shadow-lg rounded-lg">
-                        <h2 className="text-4xl font-bold mb-6 text-center">
-                            {isEdit ? "Edit Services" : "Add New Services"}
-                        </h2>
+        <FormPage
+            title={isEdit ? "Edit FAQ" : "Add FAQ"}
+            backTo="/dashboard/faqs"
+            backLabel="FAQs"
+        >
                         <form onSubmit={formik.handleSubmit} className="mt-6">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 {/* Title Field */}
@@ -206,11 +203,7 @@ const FqaFormEdit = () => {
                                 )}
                             </button>
                         </form>
-                    </div>
-                </div>
-
-            </div>
-        </div>
+        </FormPage>
     )
 }
 

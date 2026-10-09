@@ -4,6 +4,8 @@ import { motion } from "framer-motion";
 import { FaFacebook, FaInstagramSquare, FaLinkedin, FaShareAlt, FaTwitter } from "react-icons/fa";
 import AxiosWithAuth, { imageUpload } from "../contexts/AxiosWithAuth";
 import Loading from "../components/Loading";
+import { assets } from "../assets/public";
+import { htmlToText } from "../components/common/RichText";
 
 const Tems = () => {
     const [membersData, setMembersData] = useState([]);
@@ -37,7 +39,7 @@ const Tems = () => {
     return (
         <div>
             {/* Header Section */}
-            <div className="bg-gradient-to-r from-gray-800 to-gray-900 relative">
+            {/* <div className="bg-gradient-to-r from-gray-800 to-gray-900 relative">
                 <div className="absolute inset-0 bg-blue-500 opacity-50"></div>
                 <div className="container mx-auto text-center py-10 max-w-3xl relative z-10">
                     <h4 className="text-white text-4xl md:text-5xl mb-4">Our Team</h4>
@@ -49,7 +51,7 @@ const Tems = () => {
                         <li className="text-blue-300">Team</li>
                     </ol>
                 </div>
-            </div>
+            </div> */}
 
             {/* Content Section */}
             <div className="py-12">
@@ -85,7 +87,7 @@ const Tems = () => {
                                             src={
                                                 member?.image
                                                     ? `${imageUpload}/uploads/images/${encodeURIComponent(member.image.split('/').pop())}`
-                                                    : assets.projectdefaul0
+                                                    : assets.projectdefaul
                                             }
                                             alt={member.name}
                                             className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
@@ -146,7 +148,7 @@ const Tems = () => {
                                     <div className="bg-blue-950 text-white text-center p-4">
                                         <h4 className="text-lg font-semibold">{member.name}</h4>
                                         <p className="text-sm opacity-80">{member.role}</p>
-                                        <p className="text-xs mt-2 opacity-60">{member.description}</p>
+                                        <p className="text-xs mt-2 opacity-60">{htmlToText(member.description)}</p>
                                     </div>
                                 </motion.div>
                             ))}

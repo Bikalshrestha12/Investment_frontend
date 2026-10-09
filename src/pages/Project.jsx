@@ -11,6 +11,7 @@ import axios from 'axios';
 import FAQ from '../components/FAQ';
 import AxiosWithAuth, { imageUpload } from '../contexts/AxiosWithAuth';
 import Loading from '../components/Loading';
+import { htmlToText } from '../components/common/RichText';
 
 const Project = () => {
     const [projectData, setProjectData] = useState([]);
@@ -70,7 +71,7 @@ const Project = () => {
             (project) =>
                 project.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 project.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                project.description?.toLowerCase().includes(searchTerm.toLowerCase())
+                htmlToText(project.description).toLowerCase().includes(searchTerm.toLowerCase())
         );
         setFilteredProjects(filtered);
     }, [searchTerm, projectData]);
@@ -213,7 +214,7 @@ const Project = () => {
                                                 >
                                                     {project.title}
                                                 </Link>
-                                                <p className="text-gray-600 text-sm mt-2 line-clamp-3">{project.description}</p>
+                                                <p className="text-gray-600 text-sm mt-2 line-clamp-3">{htmlToText(project.description)}</p>
                                             </div>
                                             <div>
                                                 <Link

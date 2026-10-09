@@ -1,6 +1,7 @@
 import React from 'react'
 import About from '../components/About'
-import Team from '../components/Team'
+import Team from './Tems'
+import Services from './Service'
 
 const AboutAs = () => {
 
@@ -33,6 +34,7 @@ const AboutAs = () => {
             </div>
             <About />
             <Team />
+            <Services />
         </div>
     )
 }

@@ -1,196 +1,160 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { Link } from 'react-router-dom';
-import Sidbar from '../Sidbar';
+import React, { useRef, useState } from 'react';
+import { toast } from 'react-toastify';
+import { FiArrowDown, FiArrowUp, FiEdit2, FiMove, FiTrash2 } from 'react-icons/fi';
+import { FaFacebookF, FaInstagram, FaLinkedinIn, FaTwitter } from 'react-icons/fa';
+import {
+    ActionButton, Card, EmptyRow, ErrorBanner, PageHeader, Pagination, SearchInput,
+    SkeletonRows, Table, Td, Thumb, truncate, useAdminList, useListControls,
+} from '../ui';
+import { htmlToText } from '../../components/common/RichText';
 import AxiosWithAuth from '../../contexts/AxiosWithAuth';
 
+const columns = ['Order', 'Member', 'Role', 'About', 'Social', 'Actions'];
+const searchFields = ['name', 'role', 'description'];
+const socials = [
+    { key: 'facebook', icon: FaFacebookF },
+    { key: 'twitter', icon: FaTwitter },
+    { key: 'instagram', icon: FaInstagram },
+    { key: 'linkedin', icon: FaLinkedinIn },
+];
+
+// Every member is on one page, so a row can be dragged to any position.
+const PER_PAGE = 1000;
+
+const move = (list, from, to) => {
+    const next = [...list];
+    const [item] = next.splice(from, 1);
+    next.splice(to, 0, item);
+    return next;
+};
+
+const orderButton = 'inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-30';
+
 const TeamPage = () => {
-    const [teams, setTeams] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [filteredTeams, setFilteredTeams] = useState([]);
-    const [isAutoScroll, setIsAutoScroll] = useState(true);
-    const tableRef = useRef(null);
-    const scrollIntervalRef = useRef(null);
+    const { items, setItems, loading, error, remove } = useAdminList('/api/v1/team', 'team member');
+    const { search, setSearch, page, setPage, totalPages, filtered, pageItems } = useListControls(items, searchFields, PER_PAGE);
+    const dragFrom = useRef(null);
+    const orderBeforeDrag = useRef(null);
+    const [draggingId, setDraggingId] = useState(null);
+    // A search result is only part of the list, so its rows cannot be given a position.
+    const canReorder = !search.trim() && items.length > 1;
 
-    const scrollSpeed = 1;
-    const scrollInterval = 20;
-
-    useEffect(() => {
-        const fetchTeams = async () => {
-            try {
-                setLoading(true);
-                const res = await AxiosWithAuth().get(`/api/v1/team`);
-                setTeams(res.data.data || []);
-            } catch (error) {
-                console.error('Error fetching Teams:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchTeams();
-    }, []);
-
-    useEffect(() => {
-        if (!searchTerm) {
-            setFilteredTeams(teams);
-        } else {
-            const lower = searchTerm.toLowerCase();
-            setFilteredTeams(
-                teams.filter(team =>
-                    team.name.toLowerCase().includes(lower) ||
-                    team.role.toLowerCase().includes(lower)
-                )
-            );
-        }
-    }, [searchTerm, teams]);
-
-    useEffect(() => {
-        const scroll = () => {
-            const container = tableRef.current;
-            if (!container) return;
-
-            container.scrollLeft += scrollSpeed;
-
-            if (container.scrollLeft >= container.scrollWidth) {
-                container.scrollLeft = 0;
-            }
-        };
-
-        if (isAutoScroll) {
-            scrollIntervalRef.current = setInterval(scroll, scrollInterval);
-        }
-
-        return () => clearInterval(scrollIntervalRef.current);
-    }, [isAutoScroll, filteredTeams]);
-
-    const toggleAutoScroll = () => setIsAutoScroll(prev => !prev);
-
-    const handleDelete = async (id) => {
+    const saveOrder = async (next, previous) => {
         try {
-            await AxiosWithAuth().delete(`/api/v1/team/${id}`);
-            setTeams(prev => prev.filter(team => team._id !== id));
-        } catch (error) {
-            console.error('Error deleting Team:', error);
+            await AxiosWithAuth().put('/api/v1/team/reorder', { order: next.map((m) => m._id) });
+            toast.success('Team order saved');
+        } catch (err) {
+            setItems(previous);
+            toast.error(err.response?.data?.error || err.response?.data?.message || 'The new order could not be saved.');
         }
     };
 
-    const renderTable = () => (
-        <table className="w-full text-sm" style={{ minWidth: '1200px' }}>
-            <thead className="bg-gray-100 sticky top-0 z-10">
-                <tr>
-                    <th className={thClass}>Name</th>
-                    <th className={thClass}>Role</th>
-                    <th className={`${thClass} hidden md:table-cell`}>Description</th>
-                    <th className={`${thClass} hidden sm:table-cell`}>Image</th>
-                    <th className={`${thClass} hidden lg:table-cell`}>Facebook</th>
-                    <th className={`${thClass} hidden lg:table-cell`}>Twitter</th>
-                    <th className={`${thClass} hidden lg:table-cell`}>Instagram</th>
-                    <th className={`${thClass} hidden lg:table-cell`}>LinkedIn</th>
-                    <th className={thClass}>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {filteredTeams.length > 0 ? filteredTeams.map(team => (
-                    <tr key={team._id} className="hover:bg-gray-50 transition-all duration-200">
-                        <td className={tdClass}>
-                            <div className="md:hidden">
-                                <div className="font-semibold">{team.name}</div>
-                                <div className="text-xs text-gray-500">{team.role}</div>
-                                <div className="text-xs text-gray-500 mt-1">{team.description}</div>
-                            </div>
-                            <div className="hidden md:block">{team.name}</div>
-                        </td>
-                        <td className={`${tdClass} hidden md:table-cell`}>{team.role}</td>
-                        <td className={`${tdClass} hidden md:table-cell`}>
-                            {team.description.split(' ').slice(0, 5).join(' ')}{team.description.split(' ').length > 15 ? '...' : ''}
-                        </td>
-                        <td className={`${tdClass} hidden sm:table-cell`}>
-                            <img
-                                src={team.image}
-                                alt={team.name}
-                                className="w-12 h-12 object-cover rounded-lg shadow-sm transition-transform duration-200 hover:scale-105"
-                            />
-                        </td>
-                        <td className={`${tdClass} hidden lg:table-cell`}>{team.facebook || '-'}</td>
-                        <td className={`${tdClass} hidden lg:table-cell`}>{team.twitter || '-'}</td>
-                        <td className={`${tdClass} hidden lg:table-cell`}>{team.instagram || '-'}</td>
-                        <td className={`${tdClass} hidden lg:table-cell`}>{team.linkedin || '-'}</td>
-                        <td className={`${tdClass} text-right space-x-2`}>
-                            <Link
-                                to={`/dashboard/teamsformedit/${team._id}`}
-                                className="inline-block bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-lg transition-all duration-200"
-                            >
-                                ✏️
-                            </Link>
-                            <button
-                                onClick={() => handleDelete(team._id)}
-                                className="inline-block bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg transition-all duration-200"
-                            >
-                                🗑️
-                            </button>
-                        </td>
-                    </tr>
-                )) : (
-                    <tr>
-                        <td colSpan="9" className="text-center py-6">No team members found.</td>
-                    </tr>
-                )}
-            </tbody>
-        </table>
-    );
+    const onMove = (from, to) => {
+        const next = move(items, from, to);
+        setItems(next);
+        saveOrder(next, items);
+    };
 
-    if (loading) {
-        return (
-            <div className="flex justify-center items-center min-h-screen bg-gray-50">
-                <div className="animate-pulse text-xl text-gray-700">Loading team data...</div>
-            </div>
-        );
-    }
+    // Drag and drop: the rows reorder live while dragging and the order is saved on drop.
+    const onDragStart = (e, index) => {
+        dragFrom.current = index;
+        orderBeforeDrag.current = items;
+        setDraggingId(items[index]._id);
+        e.dataTransfer.effectAllowed = 'move';
+    };
+    const onDragOver = (e, index) => {
+        if (dragFrom.current === null) return;
+        e.preventDefault();
+        const from = dragFrom.current;
+        if (from === index) return;
+        setItems((prev) => move(prev, from, index));
+        dragFrom.current = index;
+    };
+    const onDragEnd = () => {
+        if (dragFrom.current === null) return;
+        dragFrom.current = null;
+        setDraggingId(null);
+        const before = orderBeforeDrag.current;
+        if (before && before.some((m, i) => m._id !== items[i]?._id)) saveOrder(items, before);
+    };
 
     return (
         <div>
-            <Sidbar />
-            <div className="flex-1 p-4 sm:p-6 lg:p-8 w-full overflow-x-hidden">
-                <h2 className="text-3xl font-bold text-center mb-6 text-blue-700">Team Member Management</h2>
+            <PageHeader
+                title="Team"
+                subtitle="People listed on the Team page. Drag a row, or use the arrows, to set the order shown on the site."
+                actionLabel="Add member"
+                actionTo="/dashboard/teamsform"
+            />
+            <ErrorBanner message={error} />
 
-                <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-                    <Link
-                        to="/dashboard/teamsform"
-                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-md text-sm sm:text-base"
-                    >
-                        ➕ Add New Team Member
-                    </Link>
-                    <input
-                        type="text"
-                        placeholder="Search Team Members"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full sm:w-64 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-                    />
-                    <button
-                        onClick={toggleAutoScroll}
-                        className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg shadow-md text-sm sm:text-base"
-                    >
-                        {isAutoScroll ? 'Pause Scroll' : 'Resume Scroll'}
-                    </button>
+            <Card>
+                <div className="border-b border-slate-200 p-4">
+                    <SearchInput value={search} onChange={setSearch} placeholder="Search by name or role..." />
                 </div>
-
-                <div
-                    ref={tableRef}
-                    className="overflow-x-auto max-w-full whitespace-nowrap rounded-lg bg-white shadow"
-                    style={{ scrollBehavior: 'smooth' }}
-                >
-                    <div className="flex w-max min-w-full">
-                        <div className="w-full">{renderTable()}</div>
-                        {/* <div className="w-full">{renderTable()}</div> */}
-                    </div>
-                </div>
-            </div>
+                <Table columns={columns}>
+                    {loading ? <SkeletonRows cols={columns.length} /> : pageItems.length === 0 ? (
+                        <EmptyRow colSpan={columns.length} message={search ? 'No members match your search.' : 'No team members yet.'} />
+                    ) : pageItems.map((m, index) => (
+                        <tr
+                            key={m._id}
+                            draggable={canReorder}
+                            onDragStart={(e) => onDragStart(e, index)}
+                            onDragOver={(e) => onDragOver(e, index)}
+                            onDrop={(e) => e.preventDefault()}
+                            onDragEnd={onDragEnd}
+                            className={`hover:bg-slate-50 ${draggingId === m._id ? 'bg-blue-50 opacity-60' : ''}`}
+                        >
+                            <Td className="whitespace-nowrap">
+                                {canReorder ? (
+                                    <div className="flex items-center gap-1">
+                                        <span className="flex h-7 w-7 cursor-grab items-center justify-center text-slate-400" title="Drag to reorder">
+                                            <FiMove className="h-4 w-4" />
+                                        </span>
+                                        <button type="button" className={orderButton} onClick={() => onMove(index, index - 1)} disabled={index === 0} title="Move up" aria-label={`Move ${m.name} up`}>
+                                            <FiArrowUp className="h-4 w-4" />
+                                        </button>
+                                        <button type="button" className={orderButton} onClick={() => onMove(index, index + 1)} disabled={index === items.length - 1} title="Move down" aria-label={`Move ${m.name} down`}>
+                                            <FiArrowDown className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                ) : <span className="text-slate-400">{items.indexOf(m) + 1}</span>}
+                            </Td>
+                            <Td>
+                                <div className="flex items-center gap-3">
+                                    <Thumb src={m.image} alt={m.name} rounded="rounded-full" />
+                                    <span className="font-medium capitalize text-slate-900">{m.name}</span>
+                                </div>
+                            </Td>
+                            <Td className="capitalize">{m.role?.trim() || '—'}</Td>
+                            <Td className="max-w-xs text-slate-500">{truncate(htmlToText(m.description), 60) || '—'}</Td>
+                            <Td>
+                                <div className="flex gap-1.5">
+                                    {socials.map(({ key, icon: Icon }) => (
+                                        m[key] ? (
+                                            <a key={key} href={m[key]} target="_blank" rel="noreferrer" title={key}
+                                                className="flex h-7 w-7 items-center justify-center rounded-md bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-blue-600">
+                                                <Icon className="h-3.5 w-3.5" />
+                                            </a>
+                                        ) : (
+                                            <span key={key} className="flex h-7 w-7 items-center justify-center rounded-md bg-slate-50 text-slate-300">
+                                                <Icon className="h-3.5 w-3.5" />
+                                            </span>
+                                        )
+                                    ))}
+                                </div>
+                            </Td>
+                            <Td className="whitespace-nowrap text-right">
+                                <ActionButton to={`/dashboard/teamsformedit/${m._id}`} title="Edit" color="green" icon={FiEdit2} />
+                                <ActionButton onClick={() => remove(m._id, m.name)} title="Delete" color="red" icon={FiTrash2} />
+                            </Td>
+                        </tr>
+                    ))}
+                </Table>
+                {!loading && <Pagination page={page} totalPages={totalPages} total={filtered.length} onChange={setPage} />}
+            </Card>
         </div>
     );
 };
-
-const thClass = "text-left py-3 px-2 sm:px-4 text-gray-600 font-semibold border-b text-xs sm:text-sm";
-const tdClass = "py-3 px-2 sm:px-4 border-b text-xs sm:text-sm";
 
 export default TeamPage;

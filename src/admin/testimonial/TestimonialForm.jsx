@@ -3,8 +3,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import axios from "axios";
-import Sidbar from "../Sidbar";
 import AxiosWithAuth from "../../contexts/AxiosWithAuth";
+import { FormPage } from '../ui';
 
 const TestimonialForm = () => {
     const navigate = useNavigate();
@@ -118,13 +118,11 @@ const TestimonialForm = () => {
     }, [id]);
 
     return (
-        <div>
-            <Sidbar />
-            <div className="max-w-4xl mx-auto p-6">
-                <div className="bg-white shadow-lg rounded-lg p-6 mt-6">
-                    <h2 className="text-3xl font-bold text-center mb-6">
-                        {isEdit ? "Edit Testimonial" : "Add New Testimonial"}
-                    </h2>
+        <FormPage
+            title={isEdit ? "Edit Testimonial" : "Add Testimonial"}
+            backTo="/dashboard/testimonials"
+            backLabel="testimonials"
+        >
 
                     <form onSubmit={formik.handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {/* Name */}
@@ -236,9 +234,7 @@ const TestimonialForm = () => {
                             </button>
                         </div>
                     </form>
-                </div>
-            </div>
-        </div>
+        </FormPage>
     );
 };
 

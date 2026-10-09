@@ -4,6 +4,7 @@ import { FaFacebook, FaInstagramSquare, FaShareAlt, FaTwitter } from 'react-icon
 import axios from 'axios';
 import AxiosWithAuth, { imageUpload } from '../contexts/AxiosWithAuth';
 import Loading from './Loading';
+import { assets } from '../assets/public';
 
 const Team = () => {
     const [membersData, setMembersData] = useState([]);
@@ -75,7 +76,7 @@ const Team = () => {
                                     src={
                                         member?.image
                                             ? `${imageUpload}/uploads/images/${encodeURIComponent(member.image.split('/').pop())}`
-                                            : assets.projectdefaul0
+                                            : assets.projectdefaul
                                     }
                                     className="w-full transform group-hover:scale-110 transition-transform duration-500"
                                     alt={member.name}

@@ -10,6 +10,7 @@ import { FcDonate } from "react-icons/fc";
 import { Link } from 'react-router-dom';
 import AxiosWithAuth, { imageUpload } from "../contexts/AxiosWithAuth.jsx"
 import Loading from '../components/Loading.jsx';
+import { htmlToText } from '../components/common/RichText';
 
 
 
@@ -62,7 +63,7 @@ const Service = () => {
 
     return (
         <div>
-            <div className="bg-gradient-to-r from-gray-800 to-gray-900 relative">
+            {/* <div className="bg-gradient-to-r from-gray-800 to-gray-900 relative">
                 <div className="absolute inset-0 bg-blue-500 opacity-50"></div>
                 <div className="container mx-auto text-center py-10 max-w-3xl relative z-10">
                     <h4
@@ -86,7 +87,7 @@ const Service = () => {
                         <li className="text-blue-400">Services</li>
                     </ol>
                 </div>
-            </div>
+            </div> */}
             {/* <Services /> */}
             <div className="py-12">
                 <div className="container mx-auto px-4 text-center">
@@ -129,10 +130,10 @@ const Service = () => {
                                 {/* Card Content */}
                                 <div className="p-4 text-center flex flex-col flex-grow">
                                     <h5 className="flex items-center justify-center text-dark hover:text-gray-600 transition-colors mb-2">
-                                        <img src={service.icon} alt="icon" width={24} height={24} className="mr-2" />
+                                        <img src={service.icon} onError={(e) => { e.currentTarget.style.display = 'none'; }} alt="icon" width={24} height={24} className="mr-2" />
                                         <span className="text-xl font-semibold">{service.title}</span>
                                     </h5>
-                                    <p className="text-sm text-gray-700 mb-4 flex-grow">{service.description}</p>
+                                    <p className="text-sm text-gray-700 mb-4 flex-grow">{htmlToText(service.description)}</p>
 
                                     <Link
                                         to={`service_detail_page/${service._id}`}
@@ -157,8 +158,8 @@ const Service = () => {
                 </div>
             </div>
 
-            <Testimonial />
-            <FAQ />
+            {/* <Testimonial />
+            <FAQ /> */}
         </div>
     )
 }

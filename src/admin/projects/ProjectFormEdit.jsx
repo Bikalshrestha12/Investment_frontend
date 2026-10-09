@@ -3,8 +3,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import axios from "axios";
-import Sidbar from '../Sidbar';
 import AxiosWithAuth from "../../contexts/AxiosWithAuth";
+import { FormPage } from '../ui';
 
 const ProjectFormEdit = () => {
     const navigate = useNavigate();
@@ -120,10 +120,11 @@ const ProjectFormEdit = () => {
     });
 
     return (
-        <div>
-            <Sidbar />
-            <div className="max-w-4xl mx-auto mt-6 p-6 bg-white shadow-lg rounded-lg">
-                <h2 className="text-2xl font-bold mb-6">{isEdit ? "Edit Project" : "Add New Project"}</h2>
+        <FormPage
+            title={isEdit ? "Edit Project" : "Add Project"}
+            backTo="/dashboard/projects"
+            backLabel="projects"
+        >
 
                 <form onSubmit={formik.handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <InputField
@@ -187,8 +188,7 @@ const ProjectFormEdit = () => {
                         </button>
                     </div>
                 </form>
-            </div>
-        </div>
+        </FormPage>
     );
 };
 

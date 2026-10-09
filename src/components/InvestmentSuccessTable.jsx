@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { htmlToText } from './common/RichText';
 
 const InvestmentSuccessTable = ({ investedProjects }) => {
     if (!investedProjects || investedProjects.length === 0) return null;
@@ -26,12 +27,12 @@ const InvestmentSuccessTable = ({ investedProjects }) => {
                                     <tr key={project._id} className="hover:bg-gray-50">
                                         <td className="px-4 py-2 border-b">{project.title}</td>
                                         <td className="px-4 py-2 border-b">{project.category}</td>
-                                        <td className="px-4 py-2 border-b">{project.description?.slice(0, 50)}...</td>
+                                        <td className="px-4 py-2 border-b">{htmlToText(project.description).slice(0, 50)}...</td>
                                         <td className="px-4 py-2 border-b">
                                             <img src={project.image} alt={project.title} className="w-12 rounded" />
                                         </td>
                                         <td className="px-4 py-2 border-b">
-                                            <img src={project.icon} alt={project.title} className="w-8 rounded" />
+                                            <img src={project.icon} onError={(e) => { e.currentTarget.style.display = 'none'; }} alt={project.title} className="w-8 rounded" />
                                         </td>
                                         {/* <td className="px-4 py-2 border-b text-right">
                                             <Link to={`/dashboard/projectdetailpage/${project._id}`} className="text-blue-600">👁️</Link>

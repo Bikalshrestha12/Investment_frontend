@@ -1,8 +1,15 @@
-import React, { use, useEffect, useState } from 'react';
-import axios from 'axios';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast, ToastContainer } from 'react-toastify';
 import AxiosWithAuth from '../contexts/AxiosWithAuth';
+import { useSession } from '../auth/SessionProvider';
+
+// Why the session ended, shown above the form after a redirect to /login.
+const sessionNotices = {
+    idle: 'You were logged out after 15 minutes of inactivity. Please log in again.',
+    expired: 'Your session has expired. Please log in again.',
+    remote: 'You were logged out in another tab.',
+};
 
 const Login = () => {
     const [isLogin, setIsLogin] = useState(true);
@@ -20,6 +27,8 @@ const Login = () => {
 
     const navigate = useNavigate();
     const location = useLocation();
+    const { login } = useSession();
+    const sessionNotice = sessionNotices[location.state?.reason];
 
     useEffect(() => {
         const savedEmail = localStorage.getItem('rememberedEmail');
@@ -70,7 +79,6 @@ const Login = () => {
                 });
 
                 const token = res.data.token;
-                localStorage.setItem('token', token);
 
                 if (rememberMe) {
                     localStorage.setItem('rememberedEmail', formData.email);
@@ -94,15 +102,17 @@ const Login = () => {
                 // localStorage.setItem('user', JSON.stringify(user));
 
                 const user = userRes.data.data;
-                if (user) {
-                    localStorage.setItem("user", JSON.stringify(user));
-                    // toast.success("Logged in successfully!");
-                } else {
-                    console.error("Invalid user object:", user);
+                if (!user) {
+                    throw new Error('Could not load your account. Please try again.');
                 }
-                // Redirect based on user role
-                const role = user?.role?.toLowerCase();
-                navigate(role === 'admin' ? '/dashboard' : '/');
+                // Starts the shared session (and its 15-minute inactivity clock) for all tabs.
+                login(token, user);
+
+                // Return to the page that required the login, if the role allows it.
+                const role = user.role?.toLowerCase();
+                const from = location.state?.from;
+                const canReturn = from && (role === 'admin' || !from.startsWith('/dashboard'));
+                navigate(canReturn ? from : role === 'admin' ? '/dashboard' : '/', { replace: true });
                 // if (role === 'admin') {
                 //     navigate('/dashboard');
                 // } else {
@@ -225,6 +235,7 @@ const Login = () => {
                                     )}
                                 </>
                             )}
+                            {sessionNotice && !error && <p className="text-amber-300 text-sm">{sessionNotice}</p>}
                             {error && <p className="text-red-400 text-sm">{error}</p>}
                             <button
                                 type="submit"

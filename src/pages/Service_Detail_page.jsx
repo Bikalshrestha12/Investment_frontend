@@ -7,6 +7,7 @@ import FAQ from '../components/FAQ';
 import Features from '../components/Features';
 import AxiosWithAuth, { imageUpload } from '../contexts/AxiosWithAuth';
 import Loading from '../components/Loading';
+import RichText from '../components/common/RichText';
 
 const Service_Detail_page = () => {
     const [service, setService] = useState({});
@@ -67,7 +68,7 @@ const Service_Detail_page = () => {
                     <nav className="text-sm flex justify-center gap-2">
                         <Link to="/" className="hover:text-blue-300">Home</Link>
                         <span>/</span>
-                        <Link to="/services" className="hover:text-blue-300">Services</Link>
+                        <Link to="/aboutas" className="hover:text-blue-300">About Us</Link>
                         <span>/</span>
                         <span className="text-blue-300">Detail</span>
                     </nav>
@@ -84,7 +85,7 @@ const Service_Detail_page = () => {
                 >
                     {/* Image */}
                     <div className="rounded-lg overflow-hidden">
-                        {service.icon && (
+                        {service.image && (
                             <img
                                 // src={service.image}
                                 src={
@@ -105,12 +106,13 @@ const Service_Detail_page = () => {
                         {service.icon && (
                             <img
                                 src={service.icon}
+                                onError={(e) => { e.currentTarget.style.display = 'none'; }}
                                 alt={service.category}
                                 className="w-10 h-10 object-cover rounded-md"
                             />
                         )}
 
-                        <p className="text-gray-700 leading-relaxed">{service.description}</p>
+                        <RichText html={service.description} />
 
                         <div className="text-sm text-gray-600 space-y-1 mt-4">
                             <p><FaCheckCircle className="inline text-green-500 mr-2" /> 100% Trust Guarantee</p>

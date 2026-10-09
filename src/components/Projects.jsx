@@ -11,6 +11,7 @@ import axios from 'axios';
 import { Link } from 'react-router-dom';
 import AxiosWithAuth, { imageUpload } from '../contexts/AxiosWithAuth';
 import Loading from './Loading';
+import { htmlToText } from './common/RichText';
 
 
 const Projects = () => {
@@ -119,7 +120,7 @@ const Projects = () => {
                                             <i className={`${project.icon} text-4xl text-blue-600 mb-3`}></i>
                                             <p className="text-dark text-lg">{project.category}</p>
                                             <a href="#" className="text-dark hover:text-blue-600 transition-colors block truncate">{project.title}</a>
-                                            <p className="text-dark text-lg">{project.description}</p>
+                                            <p className="text-dark text-lg">{htmlToText(project.description)}</p>
                                         </div>
                                         {/* <div>
                                             <a href="#" className="bg-blue-400 text-gray-900 rounded-full py-3 px-5 hover:bg-blue-700 transition-colors mt-4">Read More</a>

@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { Pie, Bar } from "react-chartjs-2";
+import React from "react";
+import { Doughnut, Bar } from "react-chartjs-2";
 import {
     Chart as ChartJS,
     ArcElement,
@@ -8,100 +8,87 @@ import {
     CategoryScale,
     LinearScale,
     BarElement,
-    Title,
 } from "chart.js";
-import AxiosWithAuth from "../../contexts/AxiosWithAuth";
+import { Card } from "../ui";
 
-ChartJS.register(
-    ArcElement,
-    Tooltip,
-    Legend,
-    CategoryScale,
-    LinearScale,
-    BarElement,
-    Title
+ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
+
+const palette = ["#2563eb", "#10b981", "#f59e0b", "#8b5cf6", "#ef4444"];
+
+const ChartCard = ({ title, subtitle, children }) => (
+    <Card className="p-5">
+        <h2 className="text-base font-semibold text-slate-900">{title}</h2>
+        <p className="mb-4 text-sm text-slate-500">{subtitle}</p>
+        {children}
+    </Card>
 );
 
-const DashboardCharts = () => {
-    const [rolesData, setRolesData] = useState(null);
-    const [monthlyData, setMonthlyData] = useState(null);
-    const [loading, setLoading] = useState(true);
+const Placeholder = ({ loading }) => (
+    <div className={`flex h-64 items-center justify-center rounded-lg bg-slate-50 text-sm text-slate-400 ${loading ? "animate-pulse" : ""}`}>
+        {loading ? "" : "No data available"}
+    </div>
+);
 
-    const token = localStorage.getItem("token");
-
-    useEffect(() => {
-        const fetchDashboard = async () => {
-            try {
-                const response = await AxiosWithAuth().get("/api/v1/auth/dashboard", {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                });
-                const data = response.data;
-                console.log("API response:", data);
-                if (data.roles && data.monthlyRegistrations) {
-                    setRolesData(data.roles);
-                    setMonthlyData(data.monthlyRegistrations);
-                } else {
-                    console.error("Failed to fetch dashboard data");
-                }
-            } catch (err) {
-                console.error(err);
-            }
-            setLoading(false);
-        };
-
-        fetchDashboard();
-    }, []);
-
-    if (loading) return <p>Loading charts...</p>;
-
-    if (!rolesData || !monthlyData) return <p>No data available</p>;
-
-    const pieData = {
-        labels: Object.keys(rolesData),
-        datasets: [
-            {
-                label: "User Roles",
-                data: Object.values(rolesData),
-                backgroundColor: ["#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0", "#9966FF"],
-            },
-        ],
-    };
-
-    const barData = {
-        labels: Object.keys(monthlyData),
-        datasets: [
-            {
-                label: "New Users Per Month",
-                data: Object.values(monthlyData),
-                backgroundColor: "#36A2EB",
-            },
-        ],
-    };
-
-    const options = {
-        responsive: true,
-        plugins: {
-            legend: { position: "top" },
-            title: {
-                display: true,
-                text: "User Registration Stats",
-            },
-        },
-    };
+// Charts for the dashboard overview; data comes from /api/v1/auth/dashboard.
+const DashboardCharts = ({ roles, monthly, loading }) => {
+    const hasRoles = roles && Object.keys(roles).length > 0;
+    const hasMonthly = monthly && Object.keys(monthly).length > 0;
 
     return (
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="bg-white p-4 rounded-lg shadow">
-                <h2 className="text-xl font-semibold mb-4">User Roles Distribution</h2>
-                <Pie data={pieData} />
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <div className="lg:col-span-2">
+                <ChartCard title="New registrations" subtitle="Users who signed up in the last 5 months">
+                    {hasMonthly ? (
+                        <div className="h-64">
+                            <Bar
+                                data={{
+                                    labels: Object.keys(monthly),
+                                    datasets: [{
+                                        label: "New users",
+                                        data: Object.values(monthly),
+                                        backgroundColor: "#2563eb",
+                                        borderRadius: 6,
+                                        maxBarThickness: 40,
+                                    }],
+                                }}
+                                options={{
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    plugins: { legend: { display: false } },
+                                    scales: {
+                                        x: { grid: { display: false } },
+                                        y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: "#f1f5f9" } },
+                                    },
+                                }}
+                            />
+                        </div>
+                    ) : <Placeholder loading={loading} />}
+                </ChartCard>
             </div>
 
-            <div className="bg-white p-4 rounded-lg shadow">
-                <h2 className="text-xl font-semibold mb-4">Monthly User Registrations</h2>
-                <Bar data={barData} options={options} />
-            </div>
+            <ChartCard title="Users by role" subtitle="Share of accounts per role">
+                {hasRoles ? (
+                    <div className="h-64">
+                        <Doughnut
+                            data={{
+                                labels: Object.keys(roles),
+                                datasets: [{
+                                    data: Object.values(roles),
+                                    backgroundColor: palette,
+                                    borderWidth: 2,
+                                    borderColor: "#fff",
+                                }],
+                            }}
+                            options={{
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                cutout: "65%",
+                                plugins: { legend: { position: "bottom", labels: { usePointStyle: true, boxWidth: 8 } } },
+                            }}
+                        />
+                    </div>
+                ) : <Placeholder loading={loading} />}
+            </ChartCard>
         </div>
     );
 };

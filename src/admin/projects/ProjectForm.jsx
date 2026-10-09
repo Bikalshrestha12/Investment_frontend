@@ -1,10 +1,14 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense, lazy } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useFormik } from "formik";
 import * as Yup from "yup";
-import axios from "axios";
-import Sidbar from '../Sidbar';
-import AxiosWithAuth from "../../contexts/AxiosWithAuth";
+import AxiosWithAuth, { resolveImage } from "../../contexts/AxiosWithAuth";
+import { Skeleton } from '../../components/common/Skeleton';
+import { FormPage } from '../ui';
+import { Field } from '../content/shared';
+
+
+const RichTextEditor = lazy(() => import('../content/RichTextEditor'));
 
 const ProjectForm = () => {
     const navigate = useNavigate();
@@ -39,6 +43,13 @@ const ProjectForm = () => {
             category: Yup.string().required("Required"),
             description: Yup.string().required("Required"),
         }),
+        // Image and icon are required by the API; a picked file counts as provided
+        validate: (values) => {
+            const errors = {};
+            if (!imageFile && !values.image) errors.image = "Required";
+            if (!iconFile && !values.icon) errors.icon = "Required";
+            return errors;
+        },
         onSubmit: async (values) => {
             setLoading(true);
 
@@ -111,7 +122,10 @@ const ProjectForm = () => {
                 navigate("/dashboard/projects");
             } catch (error) {
                 console.error("Submission error:", error);
-                alert("Failed to save project. Please try again.");
+                alert(
+                    error?.response?.data?.error ||
+                    "Failed to save project. Please try again."
+                );
             } finally {
                 setLoading(false);
             }
@@ -155,54 +169,57 @@ const ProjectForm = () => {
         }
     }, [id, token]);
 
-    return (
-        <div>
-            <Sidbar />
+    // Clear the "Required" error as soon as a file is picked
+    useEffect(() => {
+        if (imageFile || iconFile) formik.validateForm();
+    }, [imageFile, iconFile]);
 
-            <div className="max-w-4xl mx-auto mt-6 p-6 bg-white shadow-lg rounded-lg">
-                <h2 className="text-2xl font-bold mb-6">
-                    {isEdit ? "Edit Project" : "Add New Project"}
-                </h2>
-                <form onSubmit={formik.handleSubmit}>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {/* Title */}
-                        <InputField
-                            label="Title"
-                            id="title"
-                            value={formik.values.title}
+    return (
+        <FormPage
+            title={isEdit ? "Edit Project" : "Add Project"}
+            backTo="/dashboard/projects"
+            backLabel="projects"
+        >
+            <form onSubmit={formik.handleSubmit}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Title */}
+                    <InputField
+                        label="Title"
+                        id="title"
+                        value={formik.values.title}
+                        onChange={formik.handleChange}
+                        onBlur={formik.handleBlur}
+                        error={formik.touched.title && formik.errors.title}
+                    />
+
+                    {/* Category */}
+                    <div className="col-span-1">
+                        <label htmlFor="category" className="block text-sm font-medium text-gray-700">
+                            Category
+                        </label>
+                        <select
+                            id="category"
+                            name="category"
+                            className={`mt-1 block w-full border ${formik.touched.category && formik.errors.category
+                                ? "border-red-500"
+                                : "border-gray-300"
+                                } rounded-md p-2`}
+                            value={formik.values.category}
                             onChange={formik.handleChange}
                             onBlur={formik.handleBlur}
-                            error={formik.touched.title && formik.errors.title}
-                        />
+                        >
+                            <option value="">Select a category</option>
+                            <option value="Investment">Investment</option>
+                            <option value="Business">Business</option>
+                            <option value="Consulting">Consulting</option>
+                        </select>
+                        {formik.touched.category && formik.errors.category && (
+                            <p className="text-red-500 text-sm mt-1">{formik.errors.category}</p>
+                        )}
+                    </div>
 
-                        {/* Category */}
-                        <div className="col-span-1">
-                            <label htmlFor="category" className="block text-sm font-medium text-gray-700">
-                                Category
-                            </label>
-                            <select
-                                id="category"
-                                name="category"
-                                className={`mt-1 block w-full border ${formik.touched.category && formik.errors.category
-                                    ? "border-red-500"
-                                    : "border-gray-300"
-                                    } rounded-md p-2`}
-                                value={formik.values.category}
-                                onChange={formik.handleChange}
-                                onBlur={formik.handleBlur}
-                            >
-                                <option value="">Select a category</option>
-                                <option value="Investment">Investment</option>
-                                <option value="Business">Business</option>
-                                <option value="Consulting">Consulting</option>
-                            </select>
-                            {formik.touched.category && formik.errors.category && (
-                                <p className="text-red-500 text-sm mt-1">{formik.errors.category}</p>
-                            )}
-                        </div>
-
-                        {/* Description */}
-                        <div className="col-span-1">
+                    {/* Description */}
+                    {/* <div className="col-span-1">
                             <label htmlFor="description" className="block text-sm font-medium text-gray-700">
                                 Description
                             </label>
@@ -221,47 +238,63 @@ const ProjectForm = () => {
                             {formik.touched.description && formik.errors.description && (
                                 <p className="text-red-500 text-sm mt-1">{formik.errors.description}</p>
                             )}
-                        </div>
-
-                        {/* Image Upload */}
-                        <FileUpload
-                            label="Upload Image"
-                            file={imageFile}
-                            existingUrl={formik.values.image}
-                            onChange={(e) => setImageFile(e.target.files[0])}
-                        />
-
-                        {/* Icon Upload */}
-                        <FileUpload
-                            label="Upload Icon"
-                            file={iconFile}
-                            existingUrl={formik.values.icon}
-                            onChange={(e) => setIconFile(e.target.files[0])}
-                        />
-
-                        {/* Date */}
-                        <InputField
-                            label="Date"
-                            id="date"
-                            type="date"
-                            value={formik.values.date}
-                            onChange={formik.handleChange}
-                            onBlur={formik.handleBlur}
-                            error={formik.touched.date && formik.errors.date}
-                        />
-                    </div>
-
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="mt-6 w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:bg-blue-300"
+                        </div> */}
+                    <Field
+                        label="Description"
+                        required
+                        className="sm:col-span-2"
+                        error={formik.touched.description && formik.errors.description}
                     >
-                        {loading ? "Saving..." : isEdit ? "Update Project" : "Add Project"}
-                    </button>
-                </form>
-            </div>
+                        <Suspense fallback={<Skeleton className="h-72 w-full rounded-lg" />}>
+                            <RichTextEditor
+                                value={formik.values.description}
+                                onChange={(html) => formik.setFieldValue('description', html)}
+                                onBlur={() => formik.setFieldTouched('description', true)}
+                                invalid={!!(formik.touched.description && formik.errors.description)}
+                                placeholder="Describe this project..."
+                            />
+                        </Suspense>
+                    </Field>
 
-        </div>
+                    {/* Image Upload */}
+                    <FileUpload
+                        label="Upload Image"
+                        file={imageFile}
+                        existingUrl={formik.values.image}
+                        onChange={(e) => setImageFile(e.target.files[0])}
+                        error={formik.touched.image && formik.errors.image}
+                    />
+
+                    {/* Icon Upload */}
+                    <FileUpload
+                        label="Upload Icon"
+                        file={iconFile}
+                        existingUrl={formik.values.icon}
+                        onChange={(e) => setIconFile(e.target.files[0])}
+                        error={formik.touched.icon && formik.errors.icon}
+                    />
+
+                    {/* Date */}
+                    <InputField
+                        label="Date"
+                        id="date"
+                        type="date"
+                        value={formik.values.date}
+                        onChange={formik.handleChange}
+                        onBlur={formik.handleBlur}
+                        error={formik.touched.date && formik.errors.date}
+                    />
+                </div>
+
+                <button
+                    type="submit"
+                    disabled={loading}
+                    className="mt-6 w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:bg-blue-300"
+                >
+                    {loading ? "Saving..." : isEdit ? "Update Project" : "Add Project"}
+                </button>
+            </form>
+        </FormPage>
     );
 };
 
@@ -286,15 +319,16 @@ const InputField = ({ label, id, type = "text", value, onChange, onBlur, error }
 );
 
 
-const FileUpload = ({ label, file, existingUrl, onChange }) => (
+const FileUpload = ({ label, file, existingUrl, onChange, error }) => (
     <div className="col-span-1">
         <label className="block text-sm font-medium text-gray-700">{label}</label>
         <input type="file" accept="image/*" onChange={onChange} />
         {file ? (
             <img src={URL.createObjectURL(file)} alt="Preview" className="mt-2 h-24" />
         ) : existingUrl ? (
-            <img src={existingUrl} alt="Uploaded" className="mt-2 h-24" />
+            <img src={resolveImage(existingUrl)} alt="Uploaded" className="mt-2 h-24" />
         ) : null}
+        {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
     </div>
 );
 

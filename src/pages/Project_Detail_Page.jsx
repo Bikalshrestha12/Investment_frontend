@@ -8,6 +8,7 @@ import { InvestmentContext } from '../contexts/InvestmentContext';
 import AxiosWithAuth, { imageUpload } from '../contexts/AxiosWithAuth';
 import { assets } from '../assets/public';
 import Loading from '../components/Loading';
+import RichText from '../components/common/RichText';
 
 const Project_Detail_Page = () => {
     const { addToCart } = useContext(InvestmentContext);
@@ -129,6 +130,7 @@ const Project_Detail_Page = () => {
                                 {project.icon && (
                                     <img
                                         src={project.icon}
+                                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
                                         alt={project.category}
                                         className="w-10 h-10 object-cover rounded-md"
                                     />
@@ -136,15 +138,15 @@ const Project_Detail_Page = () => {
                                 <span className="text-2xl text-blue-600 font-medium">{project.category}</span>
                             </div>
 
-                            <p className="text-gray-700 leading-relaxed">{project.description}</p>
+                            <RichText html={project.description} className="text-gray-700 leading-relaxed" />
 
                             <div className="flex flex-col sm:flex-row gap-4 mt-4">
-                                <button
+                                {/* <button
                                     onClick={() => addToCart(project._id)}
                                     className="bg-black text-white px-6 py-3 rounded-md hover:bg-gray-800 transition"
                                 >
                                     Add to Cart
-                                </button>
+                                </button> */}
                                 {/* <button
                                     onClick={() => navigate('/investment_start')}
                                     className="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 transition"

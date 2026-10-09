@@ -1,20 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import axios from 'axios';
-import { motion } from 'framer-motion';
-import { useInView } from 'react-intersection-observer';
-import Sidbar from '../Sidbar';
-import AxiosWithAuth from '../../contexts/AxiosWithAuth';
+import { FiArrowLeft, FiCalendar, FiEdit2, FiTag } from 'react-icons/fi';
+import AxiosWithAuth, { resolveImage } from '../../contexts/AxiosWithAuth';
+import { Badge, Card, Thumb } from '../ui';
+import RichText from '../../components/common/RichText';
 
 const ProjectDetailPage = () => {
     const { id } = useParams();
     const [project, setProject] = useState(null);
     const [loading, setLoading] = useState(true);
-
-    const [ref, inView] = useInView({
-        triggerOnce: true,
-        threshold: 0.1,
-    });
 
     useEffect(() => {
         const fetchProject = async () => {
@@ -31,180 +25,73 @@ const ProjectDetailPage = () => {
         fetchProject();
     }, [id]);
 
-    if (loading) return <div>Loading...</div>;
-    if (!project) return <div>Project not found.</div>;
+    const backLink = (
+        <Link to="/dashboard/projects" className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-800">
+            <FiArrowLeft /> Back to projects
+        </Link>
+    );
 
-    const slideIn = {
-        hidden: { opacity: 0, x: -50 },
-        visible: { opacity: 1, x: 0, transition: { duration: 0.6 } },
-    };
+    if (loading) {
+        return (
+            <div className="mx-auto max-w-4xl">
+                {backLink}
+                <Card className="animate-pulse p-6">
+                    <div className="mb-6 h-72 rounded-lg bg-slate-200" />
+                    <div className="mb-3 h-6 w-1/2 rounded bg-slate-200" />
+                    <div className="h-4 w-3/4 rounded bg-slate-200" />
+                </Card>
+            </div>
+        );
+    }
+
+    if (!project) {
+        return (
+            <div className="mx-auto max-w-4xl">
+                {backLink}
+                <Card className="p-10 text-center text-slate-500">Project not found.</Card>
+            </div>
+        );
+    }
 
     return (
-        <div>
-            <Sidbar />
-
-            <motion.div
-                ref={ref}
-                variants={slideIn}
-                initial="hidden"
-                animate={inView ? "visible" : "hidden"}
-                style={{
-                    padding: '30px',
-                    maxWidth: '800px',
-                    margin: '0 auto',
-                    fontFamily: 'Arial, sans-serif',
-                    background: 'linear-gradient(135deg, #f0f4ff, #ffffff)',
-                    borderRadius: '16px',
-                    boxShadow: '0 8px 24px rgba(0,0,0,0.1)',
-                }}
-            >
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, ease: 'easeOut' }}
-                    style={{
-                        padding: '20px',
-                        borderRadius: '12px',
-                        background: 'linear-gradient(135deg, #e3f2fd, #ffffff)',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                    }}
-                >
-                    {/* Project Image */}
-                    <motion.div
-                        style={{ margin: '12px 0', textAlign: 'center' }}
-                        whileHover={{ scale: 1.04 }}
-                        transition={{ duration: 0.3 }}
-                    >
-                        <img
-                            src={project.image}
-                            alt={project.title}
-                            style={{
-                                width: '100%',
-                                maxWidth: '600px',
-                                margin: '0 auto',
-                                borderRadius: '12px',
-                                boxShadow: '0 4px 10px rgba(0, 0, 0, 0.1)',
-                                transition: 'all 0.3s ease-in-out',
-                            }}
-                        />
-                    </motion.div>
-
-                    {/* Icon and Title Section with Background */}
-                    <motion.div
-                        style={{
-                            background: 'linear-gradient(to right, #1976d2, #42a5f5)',
-                            padding: '20px',
-                            borderRadius: '12px',
-                            marginTop: '20px',
-                            color: '#fff',
-                        }}
-                        whileHover={{ scale: 1.01 }}
-                        transition={{ duration: 0.3 }}
-                    >
-                        <div className='flex' style={{ display: 'flex', alignItems: 'center', gap: '15px', justifyContent: 'center' }}>
-                            <motion.img
-                                src={project.icon}
-                                alt="icon"
-                                style={{ width: '50px', height: '50px', borderRadius: '50%', backgroundColor: '#fff', padding: '6px' }}
-                                whileHover={{ rotate: 10, scale: 1.2 }}
-                                transition={{ type: 'spring', stiffness: 300 }}
-                            />
-                            <motion.h2
-                                style={{ fontSize: '28px', fontWeight: '600', margin: 0 }}
-                                whileHover={{ scale: 1.05 }}
-                                transition={{ duration: 0.3 }}
-                            >
-                                {project.title}
-                            </motion.h2>
+        <div className="mx-auto max-w-4xl">
+            {backLink}
+            <Card className="overflow-hidden">
+                {project.image && (
+                    <img src={resolveImage(project.image)} alt={project.title} className="h-72 w-full object-cover sm:h-96" />
+                )}
+                <div className="p-6 sm:p-8">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="flex items-center gap-4">
+                            {project.icon && <Thumb src={project.icon} alt="" size="h-12 w-12" rounded="rounded-xl" />}
+                            <h1 className="text-2xl font-bold text-slate-900">{project.title}</h1>
                         </div>
-                    </motion.div>
-
-                    {/* Metadata Section */}
-                    <motion.div
-                        className='flex justify-between p-4'
-                        style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            padding: '20px 10px',
-                            marginTop: '20px',
-                            flexWrap: 'wrap',
-                            gap: '10px',
-                        }}
-                    >
-                        <motion.p
-                            style={{ fontSize: '18px', fontWeight: '500' }}
-                            whileHover={{ scale: 1.02, color: '#1976d2' }}
-                            transition={{ duration: 0.3 }}
+                        <Link
+                            to={`/dashboard/projectformedit/${project._id}`}
+                            className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-blue-700"
                         >
-                            <strong>Category:</strong> {project.category}
-                        </motion.p>
-                        <motion.p
-                            style={{ fontSize: '18px', fontWeight: '500' }}
-                            whileHover={{ scale: 1.02, color: '#1976d2' }}
-                            transition={{ duration: 0.3 }}
-                        >
-                            <strong>Published:</strong> {new Date(project.createdAt).toLocaleDateString()}
-                        </motion.p>
-                    </motion.div>
+                            <FiEdit2 className="h-4 w-4" /> Edit project
+                        </Link>
+                    </div>
 
-                    {/* Description Section */}
-                    <motion.div
-                        whileHover={{ scale: 1.01 }}
-                        transition={{ duration: 0.3 }}
-                        style={{
-                            background: 'linear-gradient(to right, #e3f2fd, #ffffff)',
-                            padding: '15px 20px',
-                            borderRadius: '10px',
-                            marginTop: '15px',
-                        }}
-                    >
-                        <motion.p style={{ fontSize: '16px', lineHeight: '1.6' }}>
-                            <strong style={{ fontSize: '20px' }}>Description:</strong> {project.description}
-                        </motion.p>
-                    </motion.div>
-                </motion.div>
+                    <div className="mt-5 flex flex-wrap items-center gap-4 text-sm text-slate-500">
+                        {project.category && (
+                            <span className="inline-flex items-center gap-1.5"><FiTag /> <Badge>{project.category}</Badge></span>
+                        )}
+                        {project.createdAt && (
+                            <span className="inline-flex items-center gap-1.5">
+                                <FiCalendar /> Published {new Date(project.createdAt).toLocaleDateString()}
+                            </span>
+                        )}
+                    </div>
 
-                {/* Back Link */}
-                <div className='flex justify-between'>
-                    <Link
-                        to="/dashboard/projects"
-                        style={{
-                            display: 'inline-block',
-                            marginTop: '30px',
-                            textDecoration: 'none',
-                            color: '#1976d2',
-                            fontWeight: 'bold',
-                            fontSize: '16px',
-                            transition: 'color 0.3s',
-                        }}
-                        onMouseOver={(e) => (e.target.style.color = '#004ba0')}
-                        onMouseOut={(e) => (e.target.style.color = '#1976d2')}
-                    >
-                        ← Back to Projects
-                    </Link>
-                    <Link
-                        to={`/dashboard/projectformedit/${project._id}`}
-                        style={{
-                            display: 'inline-block',
-                            marginTop: '30px',
-                            textDecoration: 'none',
-                            color: '#1976d2',
-                            fontWeight: 'bold',
-                            fontSize: '16px',
-                            transition: 'color 0.3s',
-                        }}
-                        onMouseOver={(e) => (e.target.style.color = '#004ba0')}
-                        onMouseOut={(e) => (e.target.style.color = '#1976d2')}
-                    >
-                        Edit to Projects<span style={{ display: "inline-block", transform: "rotate(180deg)" }}>
-                            ←
-                        </span>
-                    </Link>
+                    <div className="mt-6 border-t border-slate-200 pt-6">
+                        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">Description</h2>
+                        <RichText html={project.description} className="leading-relaxed text-slate-700" />
+                    </div>
                 </div>
-            </motion.div>
-
+            </Card>
         </div>
-
     );
 };
 

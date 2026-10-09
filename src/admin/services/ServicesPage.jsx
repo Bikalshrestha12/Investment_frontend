@@ -1,234 +1,56 @@
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
-import { Link } from 'react-router-dom';
-import Sidbar from '../Sidbar';
-import AxiosWithAuth from '../../contexts/AxiosWithAuth';
+import React from 'react';
+import { FiEdit2, FiTrash2 } from 'react-icons/fi';
+import { htmlToText } from '../../components/common/RichText';
+import {
+    ActionButton, Card, EmptyRow, ErrorBanner, PageHeader, Pagination, SearchInput,
+    SkeletonRows, Table, Td, Thumb, truncate, useAdminList, useListControls,
+} from '../ui';
+
+const columns = ['Service', 'Description', 'Icon', 'Actions'];
+const searchFields = ['title', 'description'];
 
 const ServicesPage = () => {
-    const [services, setServices] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [page, setPage] = useState(1);
-    const [totalPages, setTotalPages] = useState(1);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [filteredServices, setFilteredServices] = useState([]);
-
-    const servicesPerPage = 5; // Number of projects per page
-
-    // Fetch Projects
-    useEffect(() => {
-        const fetchServices = async () => {
-            try {
-                setLoading(true);
-                const res = await AxiosWithAuth().get(
-                    `/api/v1/services?page=${page}&limit=${servicesPerPage}`
-                );
-                setServices(res.data.data);
-                setTotalPages(res.data.totalPages);
-            } catch (error) {
-                console.error("Error fetching projects:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchServices();
-    }, [page]);
-
-    // Search functionality
-    useEffect(() => {
-        if (searchTerm === '') {
-            setFilteredServices(services);
-        } else {
-            const filtered = services.filter(
-                (service) =>
-                    service.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    service.category.toLowerCase().includes(searchTerm.toLowerCase())
-            );
-            setFilteredServices(filtered);
-        }
-    }, [searchTerm, services]);
-
-    // Handle Delete
-    const handleDelete = async (id) => {
-        try {
-            await AxiosWithAuth().delete(`/api/v1/services/${id}`);
-            setServices((prevServices) => prevServices.filter((service) => service._id !== id));
-        } catch (error) {
-            console.error("Error deleting services:", error);
-        }
-    };
-
-    if (loading) {
-        return (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-                <div>Loading...</div>
-            </div>
-        );
-    }
+    const { items, loading, error, remove } = useAdminList('/api/v1/services', 'service');
+    const { search, setSearch, page, setPage, totalPages, filtered, pageItems } = useListControls(items, searchFields);
 
     return (
         <div>
-            <Sidbar />
-            <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif' }}>
-                <h2 style={{ marginBottom: '20px' }} className='font-semibold text-4xl text-center my-4' >Services Management</h2>
+            <PageHeader
+                title="Services"
+                subtitle="Services shown on the public Services page."
+                actionLabel="Add service"
+                actionTo="/dashboard/servicesform"
+            />
+            <ErrorBanner message={error} />
 
-                {/* Add New Project Button and Search Input */}
-                <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Link
-                        to="/dashboard/servicesform"
-                        style={{
-                            padding: '10px 15px',
-                            backgroundColor: '#1976d2',
-                            color: '#fff',
-                            textDecoration: 'none',
-                            borderRadius: '4px',
-                            transition: 'background-color 0.3s',
-                        }}
-                        onMouseOver={(e) => (e.target.style.backgroundColor = '#1565c0')}
-                        onMouseOut={(e) => (e.target.style.backgroundColor = '#1976d2')}
-                    >
-                        ➕ Add New Services
-                    </Link>
-
-                    <input
-                        type="text"
-                        placeholder="Search Services"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        style={{
-                            padding: '8px 12px',
-                            borderRadius: '4px',
-                            border: '1px solid #ccc',
-                            width: '250px',
-                            fontSize: '14px',
-                        }}
-                    />
+            <Card>
+                <div className="border-b border-slate-200 p-4">
+                    <SearchInput value={search} onChange={setSearch} placeholder="Search services..." />
                 </div>
-
-                {/* Projects Table */}
-                <div style={{ overflowX: 'auto' }}>
-                    <table
-                        style={{
-                            width: '100%',
-                            borderCollapse: 'collapse',
-                            marginTop: '10px',
-                            backgroundColor: '#fff',
-                        }}
-                    >
-                        <thead>
-                            <tr style={{ backgroundColor: '#f2f2f2' }}>
-                                <th style={thStyle}>Title</th>
-                                <th style={thStyle}>Description</th>
-                                <th style={thStyle}>Image</th>
-                                <th style={thStyle}>Icon</th>
-                                <th style={thStyle}>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredServices.map((services) => (
-                                <tr key={services._id}>
-                                    <td style={tdStyle}>{services.title}</td>
-                                    {/* <td style={tdStyle}>{services.category}</td> */}
-                                    <td style={tdStyle}>{services.description.slice(0, 50)}...</td>
-                                    <td style={tdStyle}>
-                                        <img src={services.image} alt={services.title} style={{ width: '50px', height: 'auto', borderRadius: '4px' }} />
-                                    </td>
-                                    <td style={tdStyle}>
-                                        <img src={services.icon} alt={services.title} style={{ width: '30px', height: 'auto', borderRadius: '4px' }} />
-                                    </td>
-                                    <td style={{ ...tdStyle, textAlign: 'right' }}>
-                                        <Link
-                                            to={`/dashboard/servicesformedit/${services._id}`}
-                                            style={actionButtonStyle('#4caf50')}
-                                            title="Edit"
-                                        >
-                                            ✏️
-                                        </Link>
-                                        <button
-                                            onClick={() => handleDelete(services._id)}
-                                            style={actionButtonStyle('#f44336')}
-                                            title="Delete"
-                                        >
-                                            🗑️
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-
-                {/* Pagination Controls */}
-                <div style={{ marginTop: '20px', textAlign: 'center', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                    <button
-                        onClick={() => setPage((prevPage) => Math.max(prevPage - 1, 1))}
-                        disabled={page === 1}
-                        style={{
-                            ...paginationButtonStyle,
-                            backgroundColor: page === 1 ? '#ccc' : '#1976d2',
-                            cursor: page === 1 ? 'not-allowed' : 'pointer',
-                        }}
-                    >
-                        Prev
-                    </button>
-                    <span style={{ padding: '0 15px', fontSize: '16px' }}>
-                        Page {page} of {totalPages}
-                    </span>
-                    <button
-                        onClick={() => setPage((prevPage) => Math.min(prevPage + 1, totalPages))}
-                        disabled={page === totalPages}
-                        style={{
-                            ...paginationButtonStyle,
-                            backgroundColor: page === totalPages ? '#ccc' : '#1976d2',
-                            cursor: page === totalPages ? 'not-allowed' : 'pointer',
-                        }}
-                    >
-                        Next
-                    </button>
-                </div>
-            </div>
+                <Table columns={columns}>
+                    {loading ? <SkeletonRows cols={columns.length} /> : pageItems.length === 0 ? (
+                        <EmptyRow colSpan={columns.length} message={search ? 'No services match your search.' : 'No services yet.'} />
+                    ) : pageItems.map((s) => (
+                        <tr key={s._id} className="hover:bg-slate-50">
+                            <Td>
+                                <div className="flex items-center gap-3">
+                                    <Thumb src={s.image} alt={s.title} />
+                                    <span className="font-medium text-slate-900">{s.title}</span>
+                                </div>
+                            </Td>
+                            <Td className="max-w-md text-slate-500">{truncate(htmlToText(s.description), 90)}</Td>
+                            <Td><Thumb src={s.icon} alt="" size="h-8 w-8" rounded="rounded-md" /></Td>
+                            <Td className="whitespace-nowrap text-right">
+                                <ActionButton to={`/dashboard/servicesformedit/${s._id}`} title="Edit" color="green" icon={FiEdit2} />
+                                <ActionButton onClick={() => remove(s._id, s.title)} title="Delete" color="red" icon={FiTrash2} />
+                            </Td>
+                        </tr>
+                    ))}
+                </Table>
+                {!loading && <Pagination page={page} totalPages={totalPages} total={filtered.length} onChange={setPage} />}
+            </Card>
         </div>
     );
-};
-
-// Basic styles
-const thStyle = {
-    padding: '12px',
-    textAlign: 'left',
-    borderBottom: '1px solid #ccc',
-    fontWeight: '600',
-    fontSize: '14px',
-};
-
-const tdStyle = {
-    padding: '12px',
-    borderBottom: '1px solid #eee',
-    fontSize: '14px',
-};
-
-const actionButtonStyle = (bgColor) => ({
-    marginRight: '8px',
-    padding: '6px 12px',
-    backgroundColor: bgColor,
-    color: '#fff',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    textDecoration: 'none',
-    display: 'inline-block',
-    transition: 'background-color 0.3s',
-});
-
-const paginationButtonStyle = {
-    padding: '8px 16px',
-    backgroundColor: '#1976d2',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    margin: '0 5px',
-    transition: 'background-color 0.3s',
 };
 
 export default ServicesPage;

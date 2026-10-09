@@ -1,202 +1,120 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import AxiosWithAuth from '../../contexts/AxiosWithAuth';
-import { motion } from 'framer-motion';
+import React, { useEffect, useState } from 'react';
 import { format } from 'date-fns';
-import Sidbar from '../Sidbar';
-import { useNavigate } from 'react-router-dom';
+import { FiEye, FiX } from 'react-icons/fi';
+import AxiosWithAuth from '../../contexts/AxiosWithAuth';
+import {
+    ActionButton, Badge, Card, EmptyRow, ErrorBanner, PageHeader, Pagination, SearchInput,
+    SkeletonRows, Table, Td, Thumb, useListControls,
+} from '../ui';
+
+const columns = ['User', 'Role', 'Phone', 'Joined', 'Actions'];
+const searchFields = ['_id', 'fullName', 'email', 'role', 'phone'];
+
+const formatDate = (dateString, pattern = 'MMM dd, yyyy') => {
+    try {
+        return format(new Date(dateString), pattern);
+    } catch {
+        return '—';
+    }
+};
+
+const Avatar = ({ user, size = 'h-10 w-10' }) =>
+    user.image ? (
+        <Thumb src={user.image} alt={user.fullName} size={size} rounded="rounded-full" />
+    ) : (
+        <span className={`${size} flex shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-semibold uppercase text-blue-700`}>
+            {(user.fullName || user.email || '?').charAt(0)}
+        </span>
+    );
 
 const TotalUser = () => {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     const [selectedUser, setSelectedUser] = useState(null);
-    const [searchTerm, setSearchTerm] = useState("");
-    const [isLoggedIn, setIsLoggedIn] = useState(true);
-    const navigate = useNavigate()
-
-    const token = localStorage.getItem("token");
+    const { search, setSearch, page, setPage, totalPages, filtered, pageItems } = useListControls(users, searchFields, 10);
 
     useEffect(() => {
-        const token = localStorage.getItem("token");
-        if (!token) {
-            alert("Please login first.");
-            navigate("/login");
-        }
-    }, [token, navigate]);
-
-    // Fetch users on mount
-    useEffect(() => {
-        const fetchUsers = async () => {
-            try {
-                const response = await AxiosWithAuth().get("/api/v1/auth/users", {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                });
-
-                if (Array.isArray(response.data)) {
-                    setUsers(response.data);
-                } else {
-                    console.error("Unexpected user data format");
-                    setUsers([]);
-                }
-            } catch (err) {
-                console.error("Error fetching user data:", err);
-                setUsers([]);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchUsers();
-    }, [token]);
-
-    const filteredUsers = users.filter((user) => {
-        const search = searchTerm.toLowerCase();
-        return (
-            user._id.toLowerCase().includes(search) ||
-            (user.fullName && user.fullName.toLowerCase().includes(search)) ||
-            (user.email && user.email.toLowerCase().includes(search)) ||
-            (user.role && user.role.toLowerCase().includes(search))
-        );
-    });
-
-    const formatDate = (dateString) => {
-        try {
-            return format(new Date(dateString), 'MMM dd, yyyy HH:mm');
-        } catch {
-            return 'Invalid date';
-        }
-    };
-
-    const handleImageError = (e) => {
-        e.target.onerror = null;
-        e.target.src = '/fallback-image.jpg';
-    };
-
-    // Close modal on Escape key
-    const handleKeyDown = useCallback((e) => {
-        if (e.key === 'Escape') {
-            setSelectedUser(null);
-        }
+        AxiosWithAuth().get('/api/v1/auth/users')
+            .then((res) => setUsers(Array.isArray(res.data) ? res.data : []))
+            .catch((err) => {
+                console.error('Error fetching user data:', err);
+                setError(err.response?.data?.error || err.response?.data?.message || 'Could not load users.');
+            })
+            .finally(() => setLoading(false));
     }, []);
 
-    // Add keydown listener for Escape
     useEffect(() => {
-        document.addEventListener('keydown', handleKeyDown);
-        return () => document.removeEventListener('keydown', handleKeyDown);
-    }, [handleKeyDown]);
-
-    // Close modal on click outside
-    const handleOverlayClick = (e) => {
-        if (e.target.id === 'overlay') {
-            setSelectedUser(null);
-        }
-    };
-
-
+        const onKey = (e) => e.key === 'Escape' && setSelectedUser(null);
+        document.addEventListener('keydown', onKey);
+        return () => document.removeEventListener('keydown', onKey);
+    }, []);
 
     return (
-        <div className="container mx-auto p-5">
-            <Sidbar />
-            <h2 className="text-2xl font-bold mb-4 text-center">All Users ({users.length})</h2>
-            <div className="mb-4 flex justify-end me-10">
-                <input
-                    type="text"
-                    placeholder="Search by ID, Name, Email, or Role"
-                    className="border border-gray-300 rounded px-4 py-2 max-w-md"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    aria-label="Search users"
-                />
-            </div>
+        <div>
+            <PageHeader title="Users" subtitle={loading ? 'Registered accounts.' : `${users.length} registered accounts.`} />
+            <ErrorBanner message={error} />
 
-            {loading ? (
-                <p>Loading users...</p>
-            ) : users.length === 0 ? (
-                <p>No users found.</p>
-            ) : (
-                <div className="overflow-x-auto">
-                    <table className="min-w-full border border-gray-300">
-                        <thead className="bg-gray-100">
-                            <tr>
-                                <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">ID</th>
-                                <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Name</th>
-                                <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Email</th>
-                                <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Role</th>
-                                <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredUsers.map((user, index) => (
-                                <motion.tr
-                                    key={user._id || user.email || index}
-                                    className="border-b border-gray-200"
-                                    whileHover={{ scale: 1.01, backgroundColor: "#f9fafb" }}
-                                    transition={{ duration: 0.2 }}
-                                >
-                                    <td className="px-6 py-4 text-sm text-gray-900">{user._id}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-900">{user.fullName}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-900">{user.email}</td>
-                                    <td className="px-6 py-4 text-sm text-gray-900 capitalize">{user.role}</td>
-                                    <td className="px-6 py-4">
-                                        <button
-                                            onClick={() => setSelectedUser(user)}
-                                            className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition"
-                                        >
-                                            View
-                                        </button>
-                                    </td>
-                                </motion.tr>
-                            ))}
-                        </tbody>
-                    </table>
+            <Card>
+                <div className="border-b border-slate-200 p-4">
+                    <SearchInput value={search} onChange={setSearch} placeholder="Search by name, email, role or ID..." />
                 </div>
-            )}
+                <Table columns={columns}>
+                    {loading ? <SkeletonRows cols={columns.length} /> : pageItems.length === 0 ? (
+                        <EmptyRow colSpan={columns.length} message={search ? 'No users match your search.' : 'No users yet.'} />
+                    ) : pageItems.map((u) => (
+                        <tr key={u._id} className="hover:bg-slate-50">
+                            <Td>
+                                <div className="flex items-center gap-3">
+                                    <Avatar user={u} />
+                                    <div className="min-w-0">
+                                        <p className="truncate font-medium text-slate-900">{u.fullName || '—'}</p>
+                                        <p className="truncate text-xs text-slate-500">{u.email}</p>
+                                    </div>
+                                </div>
+                            </Td>
+                            <Td><Badge color={u.role === 'admin' ? 'green' : 'slate'}><span className="capitalize">{u.role || 'user'}</span></Badge></Td>
+                            <Td className="text-slate-500">{u.phone || '—'}</Td>
+                            <Td className="whitespace-nowrap text-slate-500">{formatDate(u.createdAt)}</Td>
+                            <Td className="text-right">
+                                <ActionButton onClick={() => setSelectedUser(u)} title="View details" icon={FiEye} />
+                            </Td>
+                        </tr>
+                    ))}
+                </Table>
+                {!loading && <Pagination page={page} totalPages={totalPages} total={filtered.length} onChange={setPage} />}
+            </Card>
 
-            {/* Modal */}
             {selectedUser && (
                 <div
-                    id="overlay"
-                    onClick={handleOverlayClick}
-                    className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4"
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4"
+                    onClick={(e) => e.target === e.currentTarget && setSelectedUser(null)}
                     role="dialog"
                     aria-modal="true"
                     aria-labelledby="user-details-title"
                 >
-                    <div className="bg-white rounded-xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
-                        <div className="p-6 sm:p-8">
-                            <h3 id="user-details-title" className="text-2xl font-bold text-gray-900 mb-6">User Details</h3>
-
-                            <div className="space-y-4">
-                                <DetailRow label="ID" value={selectedUser._id} />
-                                <DetailRow label="Name" value={selectedUser.fullName || 'N/A'} />
-                                <DetailRow label="Email" value={selectedUser.email || 'N/A'} />
-                                <DetailRow label="Role" value={selectedUser.role || 'N/A'} />
-                                <DetailRow label="Phone" value={selectedUser.phone || 'N/A'} />
-                                <DetailRow label="Address" value={selectedUser.address || 'N/A'} />
-                                <DetailRow label="Created" value={formatDate(selectedUser.createdAt)} />
-                                {selectedUser.image && (
-                                    <div className="flex items-center space-x-2">
-                                        <span className="font-semibold text-gray-700 w-24">Image:</span>
-                                        <img
-                                            src={selectedUser.image}
-                                            alt="User profile"
-                                            className="w-16 h-16 object-cover rounded-full border border-gray-200"
-                                            onError={handleImageError}
-                                        />
-                                    </div>
-                                )}
+                    <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-xl bg-white shadow-2xl">
+                        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+                            <h3 id="user-details-title" className="text-lg font-semibold text-slate-900">User details</h3>
+                            <button onClick={() => setSelectedUser(null)} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600" aria-label="Close">
+                                <FiX className="h-5 w-5" />
+                            </button>
+                        </div>
+                        <div className="px-6 py-5">
+                            <div className="mb-5 flex items-center gap-4">
+                                <Avatar user={selectedUser} size="h-14 w-14" />
+                                <div>
+                                    <p className="font-semibold text-slate-900">{selectedUser.fullName || '—'}</p>
+                                    <p className="text-sm text-slate-500">{selectedUser.email}</p>
+                                </div>
                             </div>
-
-                            <div className="mt-8 flex justify-end">
-                                <button
-                                    onClick={() => setSelectedUser(null)}
-                                    className="px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
-                                    aria-label="Close user details modal"
-                                >
-                                    Close
-                                </button>
-                            </div>
+                            <dl className="divide-y divide-slate-100 text-sm">
+                                <DetailRow label="Role" value={<span className="capitalize">{selectedUser.role || '—'}</span>} />
+                                <DetailRow label="Phone" value={selectedUser.phone} />
+                                <DetailRow label="Address" value={selectedUser.address} />
+                                <DetailRow label="Joined" value={formatDate(selectedUser.createdAt, 'MMM dd, yyyy HH:mm')} />
+                                <DetailRow label="ID" value={<span className="font-mono text-xs">{selectedUser._id}</span>} />
+                            </dl>
                         </div>
                     </div>
                 </div>
@@ -205,11 +123,10 @@ const TotalUser = () => {
     );
 };
 
-// Reusable row component for modal details
 const DetailRow = ({ label, value }) => (
-    <div className="flex items-center space-x-2">
-        <span className="font-semibold text-gray-700 w-24">{label}:</span>
-        <span className="text-gray-900">{value}</span>
+    <div className="flex gap-4 py-2.5">
+        <dt className="w-20 shrink-0 text-slate-500">{label}</dt>
+        <dd className="text-slate-900 break-all">{value || '—'}</dd>
     </div>
 );
 

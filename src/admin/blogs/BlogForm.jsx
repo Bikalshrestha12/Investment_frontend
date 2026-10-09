@@ -3,8 +3,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import axios from "axios";
-import Sidbar from "../Sidbar";
 import AxiosWithAuth from "../../contexts/AxiosWithAuth";
+import { FormPage } from '../ui';
 
 const BlogForm = () => {
   const navigate = useNavigate();
@@ -128,13 +128,11 @@ const BlogForm = () => {
     }
   }, [id, token]);
   return (
-    <div>
-      <Sidbar />
-      <div className="flex-1 p-4 sm:p-6 lg:p-8">
-        <div className="max-w-3xl mx-auto bg-white rounded-2xl shadow-xl p-6 sm:p-8">
-          <h2 className="text-3xl font-bold text-gray-800 mb-8">
-            {isEdit ? "Edit Blog" : "Create New Blog"}
-          </h2>
+        <FormPage
+            title={isEdit ? "Edit Blog Post" : "Add Blog Post"}
+            backTo="/dashboard/blogs"
+            backLabel="blog posts"
+        >
           <form onSubmit={formik.handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
@@ -189,7 +187,7 @@ const BlogForm = () => {
                   onBlur={formik.handleBlur}
                 />
                 {formik.touched.author && formik.errors.author && (
-                  <p className="text-red-500-t-1">{formik.errors.author}</p>
+                  <p className="text-red-500 text-sm mt-1">{formik.errors.author}</p>
                 )}
               </div>
               <div>
@@ -273,9 +271,7 @@ const BlogForm = () => {
               {loading ? "Processing..." : isEdit ? "Update Blog" : "Create Blog"}
             </button>
           </form>
-        </div>
-      </div>
-    </div>
+        </FormPage>
   );
 };
 

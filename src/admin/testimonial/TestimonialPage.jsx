@@ -1,199 +1,57 @@
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
-import { Link } from 'react-router-dom';
-import Sidbar from '../Sidbar';
-import AxiosWithAuth from '../../contexts/AxiosWithAuth';
+import React from 'react';
+import { FiEdit2, FiTrash2 } from 'react-icons/fi';
+import {
+    ActionButton, Card, EmptyRow, ErrorBanner, PageHeader, Pagination, SearchInput,
+    SkeletonRows, Table, Td, Thumb, truncate, useAdminList, useListControls,
+} from '../ui';
+
+const columns = ['Client', 'Testimonial', 'Actions'];
+const searchFields = ['name', 'profession', 'text'];
 
 const TestimonialPage = () => {
-    const [testimonials, setTestimonials] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [page, setPage] = useState(1);
-    const [totalPages, setTotalPages] = useState(1);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [filteredTestimonials, setFilteredTestimonials] = useState([]);
-
-    const testimonialsPerPage = 5;
-
-    useEffect(() => {
-        const fetchTestimonials = async () => {
-            try {
-                setLoading(true);
-                const res = await AxiosWithAuth().get(
-                    `/api/v1/testimonials?page=${page}&limit=${testimonialsPerPage}`
-                );
-                setTestimonials(res.data.data);
-                setTotalPages(res.data.totalPages);
-            } catch (error) {
-                console.error("Error fetching testimonials:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchTestimonials();
-    }, [page]);
-
-    useEffect(() => {
-        if (!searchTerm) {
-            setFilteredTestimonials(testimonials);
-        } else {
-            const term = searchTerm.toLowerCase();
-            const filtered = testimonials.filter(
-                t =>
-                    t.name.toLowerCase().includes(term) ||
-                    t.profession.toLowerCase().includes(term)
-            );
-            setFilteredTestimonials(filtered);
-        }
-    }, [searchTerm, testimonials]);
-
-    const handleDelete = async (id) => {
-        try {
-            await AxiosWithAuth().delete(`/v1/testimonials/${id}`);
-            setTestimonials(prev => prev.filter(t => t._id !== id));
-        } catch (error) {
-            console.error("Error deleting testimonial:", error);
-        }
-    };
-
-    if (loading) {
-        return (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-                <div>Loading...</div>
-            </div>
-        );
-    }
+    const { items, loading, error, remove } = useAdminList('/api/v1/testimonials', 'testimonial');
+    const { search, setSearch, page, setPage, totalPages, filtered, pageItems } = useListControls(items, searchFields);
 
     return (
         <div>
-            <Sidbar />
-            <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif' }}>
-                <h2 className="font-semibold text-4xl text-center my-4">Testimonials Management</h2>
+            <PageHeader
+                title="Testimonials"
+                subtitle="Client quotes shown in the Testimonials section."
+                actionLabel="Add testimonial"
+                actionTo="/dashboard/testimonialsform"
+            />
+            <ErrorBanner message={error} />
 
-                <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Link
-                        to="/dashboard/testimonialsform"
-                        style={actionButtonStyle('#1976d2')}
-                    >
-                        ➕ Add New Testimonial
-                    </Link>
-
-                    <input
-                        type="text"
-                        placeholder="Search Testimonials"
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                        style={{
-                            padding: '8px 12px',
-                            borderRadius: '4px',
-                            border: '1px solid #ccc',
-                            width: '250px',
-                            fontSize: '14px',
-                        }}
-                    />
+            <Card>
+                <div className="border-b border-slate-200 p-4">
+                    <SearchInput value={search} onChange={setSearch} placeholder="Search by name or profession..." />
                 </div>
-
-                <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: '#fff' }}>
-                        <thead>
-                            <tr style={{ backgroundColor: '#f2f2f2' }}>
-                                <th style={thStyle}>Name</th>
-                                <th style={thStyle}>Profession</th>
-                                <th style={thStyle}>Text</th>
-                                <th style={thStyle}>Image</th>
-                                <th style={thStyle}>Created At</th>
-                                <th style={thStyle}>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredTestimonials.map(testimonial => (
-                                <tr key={testimonial._id}>
-                                    <td style={tdStyle}>{testimonial.name}</td>
-                                    <td style={tdStyle}>{testimonial.profession}</td>
-                                    <td style={tdStyle}>{testimonial.text.slice(0, 50)}...</td>
-                                    <td style={tdStyle}>
-                                        <img src={testimonial.image} alt={testimonial.name} style={{ width: '50px', borderRadius: '4px' }} />
-                                    </td>
-                                    <td style={tdStyle}>{new Date(testimonial.createdAt).toLocaleDateString()}</td>
-                                    <td style={{ ...tdStyle, textAlign: 'right' }}>
-                                        <Link to={`/dashboard/testimonialsformedit/${testimonial._id}`} style={actionButtonStyle('#4caf50')} title="Edit">
-                                            ✏️
-                                        </Link>
-                                        <button onClick={() => handleDelete(testimonial._id)} style={actionButtonStyle('#f44336')} title="Delete">
-                                            🗑️
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-
-                <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                    <button
-                        onClick={() => setPage(prev => Math.max(prev - 1, 1))}
-                        disabled={page === 1}
-                        style={{
-                            ...paginationButtonStyle,
-                            backgroundColor: page === 1 ? '#ccc' : '#1976d2',
-                            cursor: page === 1 ? 'not-allowed' : 'pointer',
-                        }}
-                    >
-                        Prev
-                    </button>
-                    <span style={{ padding: '0 15px', fontSize: '16px' }}>
-                        Page {page} of {totalPages}
-                    </span>
-                    <button
-                        onClick={() => setPage(prev => Math.min(prev + 1, totalPages))}
-                        disabled={page === totalPages}
-                        style={{
-                            ...paginationButtonStyle,
-                            backgroundColor: page === totalPages ? '#ccc' : '#1976d2',
-                            cursor: page === totalPages ? 'not-allowed' : 'pointer',
-                        }}
-                    >
-                        Next
-                    </button>
-                </div>
-            </div>
+                <Table columns={columns}>
+                    {loading ? <SkeletonRows cols={columns.length} /> : pageItems.length === 0 ? (
+                        <EmptyRow colSpan={columns.length} message={search ? 'No testimonials match your search.' : 'No testimonials yet.'} />
+                    ) : pageItems.map((t) => (
+                        <tr key={t._id} className="hover:bg-slate-50">
+                            <Td>
+                                <div className="flex items-center gap-3">
+                                    <Thumb src={t.image} alt={t.name} rounded="rounded-full" />
+                                    <div>
+                                        <p className="font-medium text-slate-900">{t.name}</p>
+                                        <p className="text-xs text-slate-500">{t.profession}</p>
+                                    </div>
+                                </div>
+                            </Td>
+                            <Td className="max-w-lg italic text-slate-500">“{truncate(t.text, 110)}”</Td>
+                            <Td className="whitespace-nowrap text-right">
+                                <ActionButton to={`/dashboard/testimonialsformedit/${t._id}`} title="Edit" color="green" icon={FiEdit2} />
+                                <ActionButton onClick={() => remove(t._id, t.name)} title="Delete" color="red" icon={FiTrash2} />
+                            </Td>
+                        </tr>
+                    ))}
+                </Table>
+                {!loading && <Pagination page={page} totalPages={totalPages} total={filtered.length} onChange={setPage} />}
+            </Card>
         </div>
     );
-};
-
-const thStyle = {
-    padding: '12px',
-    textAlign: 'left',
-    borderBottom: '1px solid #ccc',
-    fontWeight: '600',
-    fontSize: '14px',
-};
-
-const tdStyle = {
-    padding: '12px',
-    borderBottom: '1px solid #eee',
-    fontSize: '14px',
-};
-
-const actionButtonStyle = (bgColor) => ({
-    marginRight: '8px',
-    padding: '6px 12px',
-    backgroundColor: bgColor,
-    color: '#fff',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    textDecoration: 'none',
-});
-
-const paginationButtonStyle = {
-    padding: '8px 16px',
-    backgroundColor: '#1976d2',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    margin: '0 5px',
 };
 
 export default TestimonialPage;

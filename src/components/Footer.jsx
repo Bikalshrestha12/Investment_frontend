@@ -2,12 +2,34 @@
 
 
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useSiteSettings } from '../hooks/useSeo';
 import { FaAngleRight, FaArrowRight, FaArrowUp, FaEnvelope, FaFacebook, FaInstagramSquare, FaLinkedin, FaMapMarkerAlt, FaPhoneAlt, FaTwitter } from 'react-icons/fa';
 
 const Footer = () => {
 
     const [isVisible, setIsVisible] = useState(false);
+
+    // Contact details and social links can be changed in Dashboard > Site Settings;
+    // until they are, the original values are shown.
+    const settings = useSiteSettings();
+    const email = settings.contactEmail || 'info.softechfundation@gmail.com';
+    const phone = settings.contactPhone || '+977-9764399565';
+    const address = settings.address || 'M8WP+4JJ, Sahabhagita Marga, काठमाडौँ 44600';
+
+    const exploreLinks = [
+        { label: 'Home', to: '/' },
+        { label: 'Services', to: '/services' },
+        { label: 'About Us', to: '/aboutas' },
+        { label: 'Latest Projects', to: '/project' },
+        { label: 'Testimonial', to: '/testimonial' },
+        { label: 'Our Team', to: '/team' },
+        { label: 'Gallery', to: '/gallery' },
+        { label: 'Notices', to: '/notices' },
+        { label: 'News', to: '/news' },
+        { label: 'Contact Us', to: '/contact' },
+    ];
 
     const handleScroll = () => {
         const scrollPosition = window.scrollY;
@@ -59,29 +81,41 @@ const Footer = () => {
                         </motion.div>
                         <div className="flex flex-col">
                             <h4 className="text-white mb-4">Explore</h4>
-                            {['Home', 'Services', 'About Us', 'Latest Projects', 'Testimonial', 'Our Team', 'Contact Us'].map((item, index) => (
-                                <a key={index} href="#" className="text-gray-400 flex hover:text-primary transition-colors mb-2">
-                                    <FaAngleRight className='mx-3' /> {item}
-                                </a>
+                            {exploreLinks.map((item) => (
+                                <Link key={item.to} to={item.to} className="text-gray-400 flex items-center hover:text-white transition-colors mb-2">
+                                    <FaAngleRight className='mx-3' /> {item.label}
+                                </Link>
                             ))}
                         </div>
                         <div className="flex flex-col">
                             <h4 className="text-white mb-4">Contact Info</h4>
                             <a href="https://maps.app.goo.gl/tmbskf3mfNVxW1K8A" className="text-gray-400 flex hover:text-primary transition-colors mb-2">
-                                <FaMapMarkerAlt className='mx-3' /> M8WP+4JJ, Sahabhagita Marga, काठमाडौँ 44600
+                                <FaMapMarkerAlt className='mx-3 mt-1 shrink-0' /> {address}
                             </a>
-                            <a href="https://mail.google.com/mail/?view=cm&to=info.softechfundation@gmail.com" target="_blank" rel="noopener noreferrer" className="text-gray-400 flex hover:text-primary transition-colors mb-2">
+                            <a href={`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(email)}`} target="_blank" rel="noopener noreferrer" className="text-gray-400 flex hover:text-primary transition-colors mb-2">
 
-                                <FaEnvelope className='mx-3' /> info.softechfundation@gmail.com
+                                <FaEnvelope className='mx-3 mt-1 shrink-0' /> <span className="break-all">{email}</span>
                             </a>
-                            <a href="tel:+9779764399565" className="text-gray-400 flex hover:text-primary transition-colors mb-2">
-                                <FaPhoneAlt className='mx-3' /> +977-9764399565
+                            <a href={`tel:${phone.replace(/[^+\d]/g, '')}`} className="text-gray-400 flex hover:text-primary transition-colors mb-2">
+                                <FaPhoneAlt className='mx-3 mt-1 shrink-0' /> {phone}
                             </a>
                             <div className="flex space-x-2 mt-3">
-                                <a href="#" className="bg-stone-100 text-dark rounded-full p-2 hover:rotate-360 transition-all duration-500 ease-in-out"><FaFacebook /></a>
-                                <a href="#" className="bg-stone-100 text-dark rounded-full p-2 hover:rotate-360 transition-all duration-500 ease-in-out"><FaTwitter /></a>
-                                <a href="#" className="bg-stone-100 text-dark rounded-full p-2 hover:rotate-360 transition-all duration-500 ease-in-out"><FaInstagramSquare /></a>
-                                <a href="#" className="bg-stone-100 text-dark rounded-full p-2 hover:rotate-360 transition-all duration-500 ease-in-out"><FaLinkedin /></a>
+                                {[
+                                    { label: 'Facebook', href: settings.facebook, icon: FaFacebook },
+                                    { label: 'Twitter', href: settings.twitter, icon: FaTwitter },
+                                    { label: 'Instagram', href: settings.instagram, icon: FaInstagramSquare },
+                                    { label: 'LinkedIn', href: settings.linkedin, icon: FaLinkedin },
+                                ].map(({ label, href, icon: Icon }) => (
+                                    <a
+                                        key={label}
+                                        href={href || '#'}
+                                        aria-label={label}
+                                        {...(href ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                                        className="bg-stone-100 text-dark rounded-full p-2 hover:rotate-360 transition-all duration-500 ease-in-out"
+                                    >
+                                        <Icon />
+                                    </a>
+                                ))}
                             </div>
                         </div>
                         <div className="flex flex-col">

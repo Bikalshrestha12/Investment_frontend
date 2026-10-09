@@ -21,6 +21,8 @@ import { InvestmentContext } from '../contexts/InvestmentContext';
 import { IoLogOut } from 'react-icons/io5';
 import { toast, ToastContainer } from 'react-toastify';
 import { CgProfile } from 'react-icons/cg';
+import { useSession } from '../auth/SessionProvider';
+import { resolveImage } from '../contexts/AxiosWithAuth';
 
 const Navbar = () => {
     const { cartItems } = useContext(InvestmentContext);
@@ -28,8 +30,9 @@ const Navbar = () => {
     const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-    const [userImage, setUserImage] = useState(null);
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    // Login state comes from the shared session, so it updates when any tab logs in or out.
+    const { isAuthenticated: isLoggedIn, user, logout } = useSession();
+    const userImage = user?.image ? resolveImage(user.image) : null;
     const dropdownRef = useRef(null);
     const location = useLocation();
 
@@ -39,25 +42,6 @@ const Navbar = () => {
         };
         window.addEventListener('scroll', handleScroll);
         return () => window.removeEventListener('scroll', handleScroll);
-    }, []);
-
-    useEffect(() => {
-        const token = localStorage.getItem('token');
-        setIsLoggedIn(!!token);
-    }, []);
-
-    useEffect(() => {
-        const userString = localStorage.getItem('user');
-        if (userString && userString !== 'undefined') {
-            try {
-                const userData = JSON.parse(userString);
-                if (userData?.image) {
-                    setUserImage(userData.image);
-                }
-            } catch (err) {
-                console.error('Failed to parse user data from localStorage', err);
-            }
-        }
     }, []);
 
     useEffect(() => {
@@ -71,10 +55,9 @@ const Navbar = () => {
     }, []);
 
     const handleLogout = () => {
-        localStorage.removeItem('token');
+        // Ends the session in every open tab.
+        logout();
         toast.success('Logout Successful!');
-        window.location.reload();
-        setIsLoggedIn(false);
     };
 
     const handleNavItemClick = () => {
@@ -84,6 +67,7 @@ const Navbar = () => {
 
     useEffect(() => {
         setIsDropdownOpen(false);
+        setIsMobileMenuOpen(false);
     }, [location.pathname]);
 
     const toggleDropdown = () => {
@@ -105,18 +89,27 @@ const Navbar = () => {
     const navItems = [
         { path: '/', label: 'Home' },
         { path: '/aboutas', label: 'About' },
-        { path: '/services', label: 'Services' },
+        // { path: '/services', label: 'Services' },
         { path: '/project', label: 'Projects' },
+        // { path: '/team', label: 'Team' },
+        { path: '/gallery', label: 'Gallery' },
+        { path: '/notices', label: 'Notices' },
+        { path: '/news', label: 'News' },
         { path: '/contact', label: 'Contact' },
     ];
 
     const dropdownItems = [
         { path: '/blog', label: 'Our Blog' },
-        { path: '/team', label: 'Our Team' },
         { path: '/testimonial', label: 'Testimonial' },
         { path: '/oursfaqs', label: 'FAQs' },
         { path: '/404', label: '404 Page' },
     ];
+
+    // A link is active on its own page and on pages below it (/news/some-article -> News).
+    const isActive = (path) =>
+        path === '/'
+            ? location.pathname === '/' || location.pathname === ''
+            : location.pathname === path || location.pathname.startsWith(`${path}/`);
 
     return (
         <>
@@ -141,7 +134,7 @@ const Navbar = () => {
                         <Link to="#" className="bg-primary text-white rounded-full p-2 hover:bg-blue-700 transition-colors duration-200"><FaLinkedinIn /></Link>
                         {isLoggedIn ? (
                             <div className="flex flex-wrap gap-1">
-                                <Link to="/carts" className="relative flex items-center">
+                                {/* <Link to="/carts" className="relative flex items-center">
                                     <div className="relative group inline-block cursor-pointer">
                                         <button className="bg-primary text-white rounded-full p-2 hover:bg-blue-700 transition-colors duration-200">
                                             <FaShoppingCart className="text-xl" />
@@ -155,7 +148,7 @@ const Navbar = () => {
                                             Cart
                                         </span>
                                     </div>
-                                </Link>
+                                </Link> 
                                 <Link to="/profile" className="relative flex items-center">
                                     <div className="relative group inline-block cursor-pointer">
                                         {userImage ? (
@@ -169,10 +162,11 @@ const Navbar = () => {
                                             Profile
                                         </span>
                                     </div>
-                                </Link>
+                                </Link> */}
                                 <div className="relative group inline-block cursor-pointer">
                                     <button
                                         onClick={handleLogout}
+                                        aria-label="Logout"
                                         className="bg-primary text-white rounded-full p-2 hover:bg-blue-700 transition-colors duration-200"
                                     >
                                         <IoLogOut className="text-2xl" />
@@ -201,37 +195,45 @@ const Navbar = () => {
             {/* Navbar */}
             <div className={`sticky top-0 z-50 bg-white transition-all duration-300 ${isSticky ? 'shadow-md' : ''}`}>
                 <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-                    <Link to="/" className="text-primary sm:text-xs md:text-2xl xl:text-3xl  font-bold flex items-center hover:text-blue-700 transition-colors duration-200">
-                        <FaDonate className="mr-2" /> <span> Nexas Global Investment</span>
+                    <Link to="/" className="text-primary text-lg sm:text-xl md:text-2xl 2xl:text-3xl font-bold flex items-center min-w-0 hover:text-blue-700 transition-colors duration-200">
+                        <FaDonate className="mr-2 shrink-0" /> <span className="truncate"> Nexas Global Investment</span>
                     </Link>
 
                     <button
-                        className="lg:hidden text-dark text-2xl hover:text-blue-600 transition-colors duration-200 absolute left-8/9 transform -translate-x-1/2"
+                        type="button"
+                        className="xl:hidden shrink-0 ml-3 p-2 text-dark text-2xl hover:text-blue-600 transition-colors duration-200"
                         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                        aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
+                        aria-expanded={isMobileMenuOpen}
+                        aria-controls="mobile-menu"
                     >
                         {isMobileMenuOpen ? <FaTimes /> : <FaBars />}
                     </button>
 
                     {/* Main Menu - Large Devices */}
-                    <div className="hidden lg:flex items-center space-x-6">
+                    <nav aria-label="Main" className="hidden xl:flex items-center space-x-5 2xl:space-x-6">
                         {navItems.map((item) => (
                             <Link
                                 key={item.path}
                                 to={item.path}
-                                className={`relative text-dark hover:text-blue-600 transition-colors duration-200 pb-1 ${location.pathname === item.path || (item.path === '/' && location.pathname === '')
+                                aria-current={isActive(item.path) ? 'page' : undefined}
+                                className={`relative text-dark hover:text-blue-600 transition-colors duration-200 pb-1 ${isActive(item.path)
                                     ? 'text-blue-600'
                                     : ''
                                     }`}
                                 onClick={handleNavItemClick}
                             >
                                 {item.label}
-                                {(location.pathname === item.path || (item.path === '/' && location.pathname === '')) && (
+                                {isActive(item.path) && (
                                     <span className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 to-purple-600" />
                                 )}
                             </Link>
                         ))}
                         <div className="relative group" ref={dropdownRef}>
                             <button
+                                type="button"
+                                aria-haspopup="true"
+                                aria-expanded={isDropdownOpen}
                                 className={`flex items-center text-dark hover:text-blue-600 transition-colors duration-200 pb-1 ${dropdownItems.some((item) => item.path === location.pathname) ? 'text-blue-600' : ''
                                     }`}
                                 onClick={toggleDropdown}
@@ -268,65 +270,67 @@ const Navbar = () => {
                         {/* <button onClick={() => setIsSearchOpen(true)} className="text-dark text-lg hover:text-blue-600 transition-colors duration-200">
                             <FaSearch />
                         </button> */}
-                        <Link to="/project" className="bg-blue-950 text-white py-2 px-4 rounded-full hover:bg-blue-700 transition-colors duration-200">
+                        <Link to="/project" className="bg-blue-950 text-white py-2 px-4 rounded-full whitespace-nowrap hover:bg-blue-700 transition-colors duration-200">
                             Start Invest
                         </Link>
-                    </div>
+                    </nav>
                 </div>
-            </div>
 
-            {/* Mobile Menu */}
-            <AnimatePresence>
-                {isMobileMenuOpen && (
-                    <motion.div
-                        variants={mobileMenuVariants}
-                        initial="hidden"
-                        animate="visible"
-                        exit="hidden"
-                        className="lg:hidden bg-white shadow-md px-4 py-5 space-y-3 overflow-hidden"
-                    >
-                        {navItems.map((item) => (
-                            <Link
-                                key={item.path}
-                                to={item.path}
-                                className={`block text-dark hover:text-blue-600 transition-colors duration-200 relative pb-1 ${location.pathname === item.path || (item.path === '/' && location.pathname === '')
-                                    ? 'text-blue-600'
-                                    : ''
-                                    }`}
-                                onClick={handleNavItemClick}
-                            >
-                                {item.label}
-                                {(location.pathname === item.path || (item.path === '/' && location.pathname === '')) && (
-                                    <span className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 to-purple-600" />
-                                )}
-                            </Link>
-                        ))}
-                        {dropdownItems.map((item) => (
-                            <Link
-                                key={item.path}
-                                to={item.path}
-                                className={`block text-dark hover:text-blue-600 transition-colors duration-200 relative pb-1 ${location.pathname === item.path ? 'text-blue-600' : ''
-                                    }`}
-                                onClick={handleNavItemClick}
-                            >
-                                {item.label}
-                                {location.pathname === item.path && (
-                                    <span className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 to-purple-600" />
-                                )}
-                            </Link>
-                        ))}
-                        <button
-                            onClick={() => {
-                                setIsSearchOpen(true);
-                                handleNavItemClick();
-                            }}
-                            className="text-dark flex items-center gap-2 hover:text-blue-600 transition-colors duration-200"
+                {/* Mobile Menu */}
+                <AnimatePresence>
+                    {isMobileMenuOpen && (
+                        <motion.div
+                            variants={mobileMenuVariants}
+                            initial="hidden"
+                            animate="visible"
+                            exit="hidden"
+                            id="mobile-menu"
+                            className="xl:hidden max-h-[calc(100vh-4rem)] overflow-y-auto border-t border-gray-100 bg-white shadow-md px-4 py-5 space-y-3"
                         >
-                            <FaSearch /> Search
-                        </button>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+                            {navItems.map((item) => (
+                                <Link
+                                    key={item.path}
+                                    to={item.path}
+                                    aria-current={isActive(item.path) ? 'page' : undefined}
+                                    className={`block text-dark hover:text-blue-600 transition-colors duration-200 relative pb-1 ${isActive(item.path)
+                                        ? 'text-blue-600'
+                                        : ''
+                                        }`}
+                                    onClick={handleNavItemClick}
+                                >
+                                    {item.label}
+                                    {isActive(item.path) && (
+                                        <span className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 to-purple-600" />
+                                    )}
+                                </Link>
+                            ))}
+                            {dropdownItems.map((item) => (
+                                <Link
+                                    key={item.path}
+                                    to={item.path}
+                                    className={`block text-dark hover:text-blue-600 transition-colors duration-200 relative pb-1 ${location.pathname === item.path ? 'text-blue-600' : ''
+                                        }`}
+                                    onClick={handleNavItemClick}
+                                >
+                                    {item.label}
+                                    {location.pathname === item.path && (
+                                        <span className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 to-purple-600" />
+                                    )}
+                                </Link>
+                            ))}
+                            <button
+                                onClick={() => {
+                                    setIsSearchOpen(true);
+                                    handleNavItemClick();
+                                }}
+                                className="text-dark flex items-center gap-2 hover:text-blue-600 transition-colors duration-200"
+                            >
+                                <FaSearch /> Search
+                            </button>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
 
             {/* Search Modal */}
             <AnimatePresence>
