@@ -196,7 +196,7 @@ const Navbar = () => {
             <div className={`sticky top-0 z-50 bg-white transition-all duration-300 ${isSticky ? 'shadow-md' : ''}`}>
                 <div className="container mx-auto px-4 py-3 flex items-center justify-between">
                     <Link to="/" className="text-primary text-lg sm:text-xl md:text-2xl 2xl:text-3xl font-bold flex items-center min-w-0 hover:text-blue-700 transition-colors duration-200">
-                        <FaDonate className="mr-2 shrink-0" /> <span className="truncate"> Nexas Global Investment</span>
+                        <FaDonate className="mr-2 shrink-0" /> <span className="truncate"> Nexus Global Investment</span>
                     </Link>
 
                     <button
